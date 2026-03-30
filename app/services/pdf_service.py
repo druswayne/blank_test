@@ -134,7 +134,7 @@ def _draw_qr(
     c.drawImage(qr_reader, qr_left_mm * mm, qr_bottom_pt, width=qr_size_mm * mm, height=qr_size_mm * mm, mask="auto")
 
 
-def _compute_rows_questions_only(
+def _compute_rows_questions_with_options(
     *,
     questions_payload: list[dict],
     font_name: str,
@@ -142,24 +142,43 @@ def _compute_rows_questions_only(
     margin_mm: float,
     text_right_mm: float,
     header_bottom_mm: float,
-    page_h_mm: float,
 ) -> tuple[list[dict], float]:
-    line_h_pt = _pt_per_line(font_size)
+    line_h_q_pt = _pt_per_line(font_size + 0.5)
+    opt_fs = max(6.5, font_size - 0.5)
+    line_h_o_pt = _pt_per_line(opt_fs)
     text_x_mm = margin_mm + 6.0
     text_max_w_pt = max(30.0, (text_right_mm - text_x_mm - 2.0) * mm)
     rows: list[dict] = []
     y_mm = header_bottom_mm + 2.0
     for i, q in enumerate(questions_payload):
         q_lines = _wrap_line_to_width(q["question_text"], font_name, font_size + 0.5, text_max_w_pt)
-        text_h_mm = len(q_lines) * (line_h_pt / mm)
-        row_h_mm = max(text_h_mm + 2 * 3.0, 10.0)
+        text_h_mm = len(q_lines) * (line_h_q_pt / mm)
+        option_groups: list[list[str]] = []
+        gap_q_to_opts_mm = 1.2
+        gap_between_opts_mm = 0.5
+        text_h_mm += gap_q_to_opts_mm
+        letters = ("A", "B", "C", "D")
+        for j, letter in enumerate(letters):
+            raw = (q.get(letter) or "").strip()
+            opt_line = f"{letter}) {raw}" if raw else f"{letter})"
+            o_lines = _wrap_line_to_width(opt_line, font_name, opt_fs, text_max_w_pt)
+            if not o_lines:
+                o_lines = [f"{letter})"]
+            option_groups.append(o_lines)
+            text_h_mm += len(o_lines) * (line_h_o_pt / mm)
+            if j < len(letters) - 1:
+                text_h_mm += gap_between_opts_mm
+        padding_mm = 2 * 3.0
+        row_h_mm = max(text_h_mm + padding_mm, 12.0)
         rows.append(
             {
                 "index": i,
                 "row_top_mm": float(y_mm),
                 "row_bottom_mm": float(y_mm + row_h_mm),
                 "_q_lines": q_lines,
+                "_option_groups": option_groups,
                 "_row_h_mm": float(row_h_mm),
+                "_opt_fs": float(opt_fs),
             }
         )
         y_mm += row_h_mm + 1.2
@@ -173,7 +192,7 @@ def generate_questions_pdf(
     qr_secret: str,
     qr_payload_version: str,
 ) -> str:
-    """A4: название, QR, таблица только с текстом вопросов (без вариантов и квадратов)."""
+    """A4: название, QR, вопросы с вариантами A–D (квадраты для отметок — только на бланке A6)."""
     _ensure_unicode_font()
     font_name = FONT_REGISTERED_NAME if FONT_REGISTERED_NAME in pdfmetrics.getRegisteredFontNames() else "Helvetica"
 
@@ -219,14 +238,13 @@ def generate_questions_pdf(
 
         header_bottom_mm = max(10.0 + len(title_lines) * 4.2 + 6.0, qr_top_mm + qr_size_mm + 2.0)
 
-        rows, y_end = _compute_rows_questions_only(
+        rows, y_end = _compute_rows_questions_with_options(
             questions_payload=questions_payload,
             font_name=font_name,
             font_size=fs,
             margin_mm=margin_mm,
             text_right_mm=text_right_mm,
             header_bottom_mm=header_bottom_mm,
-            page_h_mm=page_h_mm,
         )
         if rows and rows[-1]["row_bottom_mm"] > bottom_limit_mm:
             raise ValueError("overflow")
@@ -246,6 +264,8 @@ def generate_questions_pdf(
             inner_top_mm = row_top_mm + 3.0
             y_text_pt = (page_h_mm - inner_top_mm) * mm
             text_x_mm = margin_mm + 6.0
+            opt_fs = row["_opt_fs"]
+            option_groups = row["_option_groups"]
             c.setFont(font_name, fs + 0.5)
             c.drawString(margin_mm * mm, y_text_pt, f"{idx + 1}.")
             if q_lines:
@@ -254,6 +274,15 @@ def generate_questions_pdf(
             for line in q_lines[1:]:
                 c.drawString(text_x_mm * mm, y_text_pt, line)
                 y_text_pt -= (fs + 0.5) * 1.35
+            y_text_pt -= 1.2 * mm
+            c.setFont(font_name, opt_fs)
+            line_step_o = _pt_per_line(opt_fs)
+            for oi, og in enumerate(option_groups):
+                for line in og:
+                    c.drawString(text_x_mm * mm, y_text_pt, line)
+                    y_text_pt -= line_step_o
+                if oi < len(option_groups) - 1:
+                    y_text_pt -= 0.5 * mm
 
         c.showPage()
         c.save()

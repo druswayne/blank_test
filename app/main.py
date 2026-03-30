@@ -29,10 +29,6 @@ def create_app() -> Flask:
         "PDF_DIR", str(Path(__file__).resolve().parent.parent / "data" / "pdfs")
     )
     Path(app.config["PDF_DIR"]).mkdir(parents=True, exist_ok=True)
-    app.config["VERIFY_DEBUG_DIR"] = os.getenv(
-        "VERIFY_DEBUG_DIR", str(Path(__file__).resolve().parent.parent / "data" / "verify_debug")
-    )
-    Path(app.config["VERIFY_DEBUG_DIR"]).mkdir(parents=True, exist_ok=True)
 
     db.init_app(app)
     login_manager.init_app(app)

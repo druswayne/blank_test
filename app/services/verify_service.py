@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -18,20 +16,6 @@ OPTION_LABELS = ["A", "B", "C", "D"]
 
 # Базовая высота выпрямлённого растра; ширина считается из соотношения сторон листа (как в PDF).
 _DEFAULT_RASTER_H = 2400
-
-
-def _safe_imwrite(path: Path, img_bgr) -> bool:
-    """
-    Надежная запись изображения для Windows путей с не-ASCII символами.
-    """
-    try:
-        ok, buf = cv2.imencode(".jpg", img_bgr)
-        if not ok:
-            return False
-        buf.tofile(str(path))
-        return True
-    except Exception:
-        return False
 
 
 def _order_points(pts: np.ndarray) -> np.ndarray:
@@ -407,7 +391,6 @@ def verify_blank_image(
     qr_secret: str,
     qr_payload_version: str,
     qr_points_img: np.ndarray | None = None,
-    debug_dir: str | None = None,
 ) -> dict:
     # QR payload -> blank_uuid already validated in route? Здесь перепроверяем сигнатуру.
     _ = verify_qr_payload(
@@ -468,13 +451,11 @@ def verify_blank_image(
             target_h=target_h,
         )
 
-    h_total = None
     if pre_hmat_aruco is not None:
         warped_bgr = cv2.warpPerspective(img_bgr, pre_hmat_aruco, (target_w, target_h))
-        h_total = pre_hmat_aruco
     elif layout_version == 3 and qr_points_img is not None:
         # Для A6-ответов выравнивание по QR значительно стабильнее, чем по контуру листа.
-        warped_bgr, hmat_qr = _warp_by_qr_anchor_with_matrix(
+        warped_bgr, _h_qr = _warp_by_qr_anchor_with_matrix(
             img_bgr=img_bgr,
             qr_points_img=qr_points_img,
             target_w=target_w,
@@ -485,12 +466,11 @@ def verify_blank_image(
             qr_top_mm=qr_top_mm,
             qr_size_mm=qr_size_mm,
         )
-        h_total = hmat_qr
     elif layout_version == 3:
         # Если payload QR пришел с телефона, но точки QR не передали — пытаемся найти углы QR в фото.
         qr_pts_only = _detect_qr_points_only(img_bgr)
         if qr_pts_only is not None:
-            warped_bgr, hmat_qr2 = _warp_by_qr_anchor_with_matrix(
+            warped_bgr, _h_qr2 = _warp_by_qr_anchor_with_matrix(
                 img_bgr=img_bgr,
                 qr_points_img=qr_pts_only,
                 target_w=target_w,
@@ -501,13 +481,10 @@ def verify_blank_image(
                 qr_top_mm=qr_top_mm,
                 qr_size_mm=qr_size_mm,
             )
-            h_total = hmat_qr2
         else:
-            warped_bgr, hmat_page = _warp_to_page_with_matrix(img_bgr, target_w, target_h)
-            h_total = hmat_page
+            warped_bgr, _h_page = _warp_to_page_with_matrix(img_bgr, target_w, target_h)
     else:
-        warped_bgr, hmat_page = _warp_to_page_with_matrix(img_bgr, target_w, target_h)
-        h_total = hmat_page
+        warped_bgr, _h_page = _warp_to_page_with_matrix(img_bgr, target_w, target_h)
     warped_gray = cv2.cvtColor(warped_bgr, cv2.COLOR_BGR2GRAY)
     warped_gray = cv2.equalizeHist(warped_gray)
 
@@ -555,19 +532,12 @@ def verify_blank_image(
             warped_bgr = cv2.warpPerspective(warped_bgr, hmat, (target_w, target_h))
             warped_gray = cv2.cvtColor(warped_bgr, cv2.COLOR_BGR2GRAY)
             warped_gray = cv2.equalizeHist(warped_gray)
-            if h_total is not None:
-                h_total = hmat @ h_total
 
     if not anchors:
         anchors = [
             METRICS.top_margin_mm + qi * METRICS.row_h_mm
             for qi in range(blank.question_count)
         ]
-
-    # Копия для визуальной отладки: рисуем рамки по всем найденным зонам ответов.
-    debug_img = warped_bgr.copy()
-    debug_polys_final: list[np.ndarray] = []
-    selected_polys_final: list[np.ndarray] = []
 
     # Анализ чекбоксов
     results: list[dict] = []
@@ -620,11 +590,6 @@ def verify_blank_image(
             )
 
             scores.append(_analyze_checkbox_fill(warped_gray, (x0, y0, x1, y1)))
-            # Черной рамкой показываем, где сервер ищет отметки.
-            cv2.rectangle(debug_img, (x0, y0), (x1, y1), (0, 0, 0), 2)
-            debug_polys_final.append(
-                np.array([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], dtype=np.float32).reshape(1, 4, 2)
-            )
 
         fill_scores_by_question.append(scores)
         top_idx = int(np.argmax(scores))
@@ -667,82 +632,12 @@ def verify_blank_image(
             }
         )
 
-        # Подсветим выбранный вариант толстой рамкой.
-        if selected_index is not None:
-            if layout_version == 3:
-                s_left_mm, s_top_mm, s_side_mm = checkbox_inner_rect_horizontal(
-                    row_anchor_top_mm=anchor_mm,
-                    options_left_mm=options_left_mm,
-                    opt_index=selected_index,
-                    outer_mm=h_outer,
-                    inset_mm=h_inset,
-                    gap_x_mm=h_gap_x,
-                )
-            else:
-                s_left_mm, s_top_mm, s_side_mm = checkbox_inner_rect_mm(
-                    row_anchor_top_mm=anchor_mm,
-                    options_left_mm=options_left_mm,
-                    opt_index=selected_index,
-                )
-            sx0 = max(0, _mm_to_px_x(s_left_mm, page_w_mm=page_w_mm, target_w=target_w))
-            sy0 = max(0, _mm_to_px_y(s_top_mm, page_h_mm=page_h_mm, target_h=target_h))
-            sx1 = min(
-                target_w - 1,
-                _mm_to_px_x(s_left_mm + s_side_mm, page_w_mm=page_w_mm, target_w=target_w),
-            )
-            sy1 = min(
-                target_h - 1,
-                _mm_to_px_y(s_top_mm + s_side_mm, page_h_mm=page_h_mm, target_h=target_h),
-            )
-            cv2.rectangle(debug_img, (sx0, sy0), (sx1, sy1), (0, 130, 255), 3)
-            selected_polys_final.append(
-                np.array([[sx0, sy0], [sx1, sy0], [sx1, sy1], [sx0, sy1]], dtype=np.float32).reshape(1, 4, 2)
-            )
-
     correct_count = sum(1 for r in results if r["is_correct"])
-    debug_image_path = None
-    debug_source_overlay_path = None
-    if debug_dir:
-        try:
-            Path(debug_dir).mkdir(parents=True, exist_ok=True)
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            out_path = Path(debug_dir) / f"{blank.uuid}_{ts}.jpg"
-            if _safe_imwrite(out_path, debug_img):
-                debug_image_path = str(out_path)
-            else:
-                debug_image_path = None
-
-            # Доп. debug: якоря/блоки на исходном фото.
-            src_overlay = img_bgr.copy()
-            if qr_points_img is not None:
-                q = _order_points(qr_points_img.astype(np.float32)).astype(np.int32).reshape(1, 4, 2)
-                cv2.polylines(src_overlay, [q], True, (255, 180, 0), 3)
-
-            if h_total is not None:
-                try:
-                    h_inv = np.linalg.inv(h_total)
-                    for poly in debug_polys_final:
-                        src_poly = cv2.perspectiveTransform(poly, h_inv).astype(np.int32)
-                        cv2.polylines(src_overlay, [src_poly], True, (0, 0, 0), 2)
-                    for poly in selected_polys_final:
-                        src_poly = cv2.perspectiveTransform(poly, h_inv).astype(np.int32)
-                        cv2.polylines(src_overlay, [src_poly], True, (0, 130, 255), 3)
-                except Exception:
-                    pass
-
-            src_path = Path(debug_dir) / f"{blank.uuid}_{ts}_source_overlay.jpg"
-            if _safe_imwrite(src_path, src_overlay):
-                debug_source_overlay_path = str(src_path)
-        except Exception:
-            debug_image_path = None
-            debug_source_overlay_path = None
 
     return {
         "blank_uuid": blank.uuid,
         "questions_total": blank.question_count,
         "correct_count": correct_count,
         "results": results,
-        "debug_image_path": debug_image_path,
-        "debug_source_overlay_path": debug_source_overlay_path,
     }
 
