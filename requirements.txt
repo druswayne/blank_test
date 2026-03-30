@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+bcrypt
+python-dotenv
+reportlab
+qrcode
+Pillow
+opencv-contrib-python-headless
+numpy

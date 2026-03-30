@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Бланк{% endblock %}
+{% block content %}
+  <h2>Бланк: {{ blank.title if blank.title else blank.uuid }}</h2>
+  <div style="color:#555; margin-top:6px;">Вопросов: {{ blank.question_count }}</div>
+
+  <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+    <a class="btn" href="{{ url_for('web.blank_pdf_questions', blank_uuid=blank.uuid) }}">Скачать вопросы (A4)</a>
+    <a class="btn secondary" href="{{ url_for('web.blank_pdf_answers', blank_uuid=blank.uuid) }}">Скачать бланк ответов (A6)</a>
+  </div>
+
+  <div class="box" style="margin-top:16px;">
+    <div>Проверка по фото делается по <b>бланку ответов A6</b> (с полями ФИО/класс и квадратами A–D в строку).</div>
+    <div style="margin-top:8px; color:#333;">
+      1) в кадре должен быть весь лист A6;<br/>
+      2) QR и отметки в квадратах должны быть чёткими;<br/>
+      3) снимайте примерно параллельно листу.
+    </div>
+  </div>
+{% endblock %}

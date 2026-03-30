@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Создание бланка{% endblock %}
+{% block content %}
+  <h2>Создание бланка</h2>
+  <form method="post">
+    <label>Название (опционально)</label>
+    <input name="title" type="text" />
+
+    <label>Количество вопросов (1..{{ max_questions }})</label>
+    <input name="question_count" type="number" min="1" max="{{ max_questions }}" value="1" required />
+
+    <div class="box">
+      <h3>Вопросы</h3>
+      {% for i in range(1, max_questions + 1) %}
+        <div style="border-top:1px solid #eee; padding-top:12px; margin-top:12px;">
+          <h4>Вопрос {{ i }}</h4>
+          <label>Текст вопроса</label>
+          <input name="question_{{ i }}" type="text" />
+
+          <label>Вариант A</label>
+          <input name="option_a_{{ i }}" type="text" />
+          <label>Вариант B</label>
+          <input name="option_b_{{ i }}" type="text" />
+          <label>Вариант C</label>
+          <input name="option_c_{{ i }}" type="text" />
+          <label>Вариант D</label>
+          <input name="option_d_{{ i }}" type="text" />
+
+          <label>Правильный ответ</label>
+          <select name="correct_{{ i }}">
+            <option value="0">A</option>
+            <option value="1">B</option>
+            <option value="2">C</option>
+            <option value="3">D</option>
+          </select>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="btn" type="submit">Создать и сгенерировать PDF</button>
+      <a class="btn secondary" style="display:inline-block; margin-left:10px;" href="{{ url_for('web.dashboard') }}">Назад</a>
+    </div>
+  </form>
+{% endblock %}
+

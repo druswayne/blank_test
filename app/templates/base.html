@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Test Blanks{% endblock %}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; }
+      .container { max-width: 980px; }
+      .flash { padding: 10px 12px; margin-bottom: 14px; border-radius: 8px; }
+      .flash.error { background: #ffe0e0; color: #a40000; }
+      .flash.success { background: #e0ffe8; color: #0a6a1f; }
+      label { display: block; margin-top: 10px; font-weight: 600; }
+      input[type="text"], input[type="password"], select, textarea {
+        width: 100%;
+        padding: 8px;
+        margin-top: 6px;
+        box-sizing: border-box;
+      }
+      textarea { min-height: 70px; resize: vertical; }
+      .row { display: flex; gap: 16px; }
+      .col { flex: 1; }
+      .box { border: 1px solid #ddd; padding: 14px; border-radius: 10px; margin-top: 16px; }
+      .btn { padding: 10px 14px; background: #1b66ff; color: white; border: 0; border-radius: 8px; cursor: pointer; }
+      .btn.secondary { background: #333; }
+      a { color: #1b66ff; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>
+

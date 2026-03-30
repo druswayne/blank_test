@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+{% block content %}
+  <h2>Вход</h2>
+  <form method="post">
+    <label>Логин</label>
+    <input name="login" type="text" required />
+
+    <label>Пароль</label>
+    <input name="password" type="password" required />
+
+    <div style="margin-top:16px;">
+      <button class="btn" type="submit">Войти</button>
+      <a class="btn secondary" style="display:inline-block; margin-left:10px;" href="{{ url_for('web.register') }}">Регистрация</a>
+    </div>
+  </form>
+{% endblock %}
+

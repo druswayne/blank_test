@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Личный кабинет{% endblock %}
+{% block content %}
+  <h2>Личный кабинет</h2>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
+    <a class="btn" href="{{ url_for('web.new_blank') }}">Создать новый бланк</a>
+    <form method="post" action="{{ url_for('web.logout') }}">
+      <button class="btn secondary" type="submit">Выйти</button>
+    </form>
+  </div>
+
+  <div class="box">
+    <h3>Ваши бланки</h3>
+    {% if blanks %}
+      <div style="margin-top:10px;">
+        {% for b in blanks %}
+          <div style="padding:10px 0; border-bottom:1px solid #eee;">
+            <div><b>{{ b.title if b.title else ('Бланк ' ~ b.uuid) }}</b></div>
+            <div>Вопросов: {{ b.question_count }} / QR+PDF</div>
+            <div style="margin-top:6px;">
+              <a href="{{ url_for('web.blank_detail', blank_uuid=b.uuid) }}">Открыть</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="margin-top:10px; color:#666;">Пока нет бланков.</div>
+    {% endif %}
+  </div>
+{% endblock %}
+
