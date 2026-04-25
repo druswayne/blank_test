@@ -1,32 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Личный кабинет{% endblock %}
 {% block content %}
-  <h2>Личный кабинет</h2>
+  <section class="card" style="padding:18px 20px;">
+    <h2 style="margin:0;">Личный кабинет</h2>
+    <p class="muted" style="margin:8px 0 0;">Управляйте тестами, проверкой бланков и аналитикой в одном месте.</p>
+  </section>
 
-  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
-    <a class="btn" href="{{ url_for('web.new_blank') }}">Создать новый бланк</a>
-    <form method="post" action="{{ url_for('web.logout') }}">
-      <button class="btn secondary" type="submit">Выйти</button>
-    </form>
-  </div>
-
-  <div class="box">
-    <h3>Ваши бланки</h3>
-    {% if blanks %}
-      <div style="margin-top:10px;">
-        {% for b in blanks %}
-          <div style="padding:10px 0; border-bottom:1px solid #eee;">
-            <div><b>{{ b.title if b.title else ('Бланк ' ~ b.uuid) }}</b></div>
-            <div>Вопросов: {{ b.question_count }} / QR+PDF</div>
-            <div style="margin-top:6px;">
-              <a href="{{ url_for('web.blank_detail', blank_uuid=b.uuid) }}">Открыть</a>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div style="margin-top:10px; color:#666;">Пока нет бланков.</div>
-    {% endif %}
+  <div class="tile-grid">
+    <a href="{{ url_for('web.tests_hub') }}" class="tile">
+      <div class="tile-title">Центр тестов</div>
+      <div class="tile-desc">Создание, поиск, копирование, рейтинги, PDF и статистика по результатам сканирования.</div>
+    </a>
   </div>
 {% endblock %}
-

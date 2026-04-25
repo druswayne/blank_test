@@ -8,3 +8,6 @@ qrcode
 Pillow
 opencv-contrib-python-headless
 numpy
+xhtml2pdf
+playwright
+beautifulsoup4

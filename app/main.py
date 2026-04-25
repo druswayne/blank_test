@@ -44,9 +44,15 @@ def create_app() -> Flask:
             insp = inspect(db.engine)
             if insp.has_table("test_blanks"):
                 cols = {c["name"] for c in insp.get_columns("test_blanks")}
-                if "layout_json" not in cols:
-                    with db.engine.begin() as conn:
+                with db.engine.begin() as conn:
+                    if "layout_json" not in cols:
                         conn.execute(text("ALTER TABLE test_blanks ADD COLUMN layout_json TEXT"))
+                    if "is_public" not in cols:
+                        conn.execute(text("ALTER TABLE test_blanks ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT 0"))
+                    if "grade" not in cols:
+                        conn.execute(text("ALTER TABLE test_blanks ADD COLUMN grade INTEGER"))
+                    if "subject" not in cols:
+                        conn.execute(text("ALTER TABLE test_blanks ADD COLUMN subject VARCHAR(50)"))
         except Exception:
             db.session.rollback()
 

@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Вход{% endblock %}
 {% block content %}
-  <h2>Вход</h2>
-  <form method="post">
-    <label>Логин</label>
-    <input name="login" type="text" required />
+  <div class="card" style="max-width:520px; margin:22px auto 0; padding:22px;">
+    <h2 style="margin:0;">Вход в аккаунт</h2>
+    <p class="muted" style="margin-top:8px;">Продолжите работу с тестами, бланками и статистикой.</p>
+    <form method="post" style="margin-top:12px;">
+      <label>Логин</label>
+      <input name="login" type="text" required />
 
-    <label>Пароль</label>
-    <input name="password" type="password" required />
+      <label>Пароль</label>
+      <input name="password" type="password" required />
 
-    <div style="margin-top:16px;">
-      <button class="btn" type="submit">Войти</button>
-      <a class="btn secondary" style="display:inline-block; margin-left:10px;" href="{{ url_for('web.register') }}">Регистрация</a>
-    </div>
-  </form>
+      <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" type="submit">Войти</button>
+        <a class="btn secondary" href="{{ url_for('web.register') }}">Регистрация</a>
+      </div>
+    </form>
+  </div>
 {% endblock %}
 

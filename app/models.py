@@ -18,6 +18,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     blanks = db.relationship("TestBlank", back_populates="owner", cascade="all, delete-orphan")
+    rated_blanks = db.relationship("TestBlankRating", back_populates="user", cascade="all, delete-orphan")
 
     @staticmethod
     def hash_password(password: str) -> bytes:
@@ -37,6 +38,11 @@ class TestBlank(db.Model):
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     title = db.Column(db.String(200), nullable=True)
 
+    # Опционально: публичный поиск, класс (1–11), предмет (код: math, russian)
+    is_public = db.Column(db.Boolean, nullable=False, default=False)
+    grade = db.Column(db.Integer, nullable=True)
+    subject = db.Column(db.String(50), nullable=True)
+
     question_count = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -47,6 +53,7 @@ class TestBlank(db.Model):
     questions = db.relationship(
         "TestQuestion", back_populates="blank", order_by="TestQuestion.question_number", cascade="all, delete-orphan"
     )
+    ratings = db.relationship("TestBlankRating", back_populates="blank", cascade="all, delete-orphan")
 
 
 class TestQuestion(db.Model):
@@ -66,8 +73,41 @@ class TestQuestion(db.Model):
     correct_index = db.Column(db.Integer, nullable=False)  # 0=A,1=B,2=C,3=D
 
     blank = db.relationship("TestBlank", back_populates="questions")
+    stats = db.relationship("TestQuestionStats", back_populates="question", uselist=False, cascade="all, delete-orphan")
 
     __table_args__ = (db.UniqueConstraint("blank_id", "question_number", name="uq_question_number_per_blank"),)
+
+
+class TestQuestionStats(db.Model):
+    __tablename__ = "test_question_stats"
+
+    id = db.Column(db.Integer, primary_key=True)
+    blank_id = db.Column(db.Integer, db.ForeignKey("test_blanks.id"), nullable=False, index=True)
+    question_id = db.Column(db.Integer, db.ForeignKey("test_questions.id"), nullable=False, unique=True, index=True)
+
+    attempts_total = db.Column(db.Integer, nullable=False, default=0)
+    correct_total = db.Column(db.Integer, nullable=False, default=0)
+    option_a_total = db.Column(db.Integer, nullable=False, default=0)
+    option_b_total = db.Column(db.Integer, nullable=False, default=0)
+    option_c_total = db.Column(db.Integer, nullable=False, default=0)
+    option_d_total = db.Column(db.Integer, nullable=False, default=0)
+
+    question = db.relationship("TestQuestion", back_populates="stats")
+
+
+class TestBlankRating(db.Model):
+    __tablename__ = "test_blank_ratings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    blank_id = db.Column(db.Integer, db.ForeignKey("test_blanks.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    score = db.Column(db.Integer, nullable=False)  # 1..5
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    blank = db.relationship("TestBlank", back_populates="ratings")
+    user = db.relationship("User", back_populates="rated_blanks")
+
+    __table_args__ = (db.UniqueConstraint("blank_id", "user_id", name="uq_blank_user_rating"),)
 
 
 @login_manager.user_loader

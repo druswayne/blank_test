@@ -5,6 +5,7 @@
   <div style="color:#555; margin-top:6px;">Вопросов: {{ blank.question_count }}</div>
 
   <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+    <a class="btn" href="{{ url_for('web.tests_edit', blank_uuid=blank.uuid) }}">Редактировать тест</a>
     <a class="btn" href="{{ url_for('web.blank_pdf_questions', blank_uuid=blank.uuid) }}">Скачать вопросы (A4)</a>
     <a class="btn secondary" href="{{ url_for('web.blank_pdf_answers', blank_uuid=blank.uuid) }}">Скачать бланк ответов (A6)</a>
   </div>

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+from html import unescape
 from pathlib import Path
 
 import cv2
@@ -17,9 +19,21 @@ from reportlab.pdfgen import canvas
 from ..models import TestBlank
 from .answer_sheet_a6 import A6 as A6M
 from .qr_service import make_qr_payload
-from .template_constants import METRICS
+from .questions_html_pdf import generate_questions_pdf_html
 
 FONT_REGISTERED_NAME = "PdfSans"
+
+
+def html_to_plain(text: str | None) -> str:
+    """Текст для PDF: убираем HTML/разметку редактора, оставляем читаемую строку."""
+    if not text:
+        return ""
+    s = unescape(str(text))
+    s = re.sub(r"(?is)<script.*?>.*?</script>", " ", s)
+    s = re.sub(r"(?is)<style.*?>.*?</style>", " ", s)
+    s = re.sub(r"<[^>]+>", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
 
 
 def _find_unicode_font_path() -> Path | None:
@@ -106,19 +120,6 @@ def _pt_per_line(font_size_pt: float) -> float:
     return font_size_pt * 1.35
 
 
-def _questions_payload(blank: TestBlank) -> list[dict]:
-    return [
-        {
-            "question_text": q.question_text,
-            "A": q.option_a,
-            "B": q.option_b,
-            "C": q.option_c,
-            "D": q.option_d,
-        }
-        for q in sorted(blank.questions, key=lambda x: x.question_number)
-    ]
-
-
 def _draw_qr(
     c: canvas.Canvas,
     *,
@@ -134,57 +135,6 @@ def _draw_qr(
     c.drawImage(qr_reader, qr_left_mm * mm, qr_bottom_pt, width=qr_size_mm * mm, height=qr_size_mm * mm, mask="auto")
 
 
-def _compute_rows_questions_with_options(
-    *,
-    questions_payload: list[dict],
-    font_name: str,
-    font_size: float,
-    margin_mm: float,
-    text_right_mm: float,
-    header_bottom_mm: float,
-) -> tuple[list[dict], float]:
-    line_h_q_pt = _pt_per_line(font_size + 0.5)
-    opt_fs = max(6.5, font_size - 0.5)
-    line_h_o_pt = _pt_per_line(opt_fs)
-    text_x_mm = margin_mm + 6.0
-    text_max_w_pt = max(30.0, (text_right_mm - text_x_mm - 2.0) * mm)
-    rows: list[dict] = []
-    y_mm = header_bottom_mm + 2.0
-    for i, q in enumerate(questions_payload):
-        q_lines = _wrap_line_to_width(q["question_text"], font_name, font_size + 0.5, text_max_w_pt)
-        text_h_mm = len(q_lines) * (line_h_q_pt / mm)
-        option_groups: list[list[str]] = []
-        gap_q_to_opts_mm = 1.2
-        gap_between_opts_mm = 0.5
-        text_h_mm += gap_q_to_opts_mm
-        letters = ("A", "B", "C", "D")
-        for j, letter in enumerate(letters):
-            raw = (q.get(letter) or "").strip()
-            opt_line = f"{letter}) {raw}" if raw else f"{letter})"
-            o_lines = _wrap_line_to_width(opt_line, font_name, opt_fs, text_max_w_pt)
-            if not o_lines:
-                o_lines = [f"{letter})"]
-            option_groups.append(o_lines)
-            text_h_mm += len(o_lines) * (line_h_o_pt / mm)
-            if j < len(letters) - 1:
-                text_h_mm += gap_between_opts_mm
-        padding_mm = 2 * 3.0
-        row_h_mm = max(text_h_mm + padding_mm, 12.0)
-        rows.append(
-            {
-                "index": i,
-                "row_top_mm": float(y_mm),
-                "row_bottom_mm": float(y_mm + row_h_mm),
-                "_q_lines": q_lines,
-                "_option_groups": option_groups,
-                "_row_h_mm": float(row_h_mm),
-                "_opt_fs": float(opt_fs),
-            }
-        )
-        y_mm += row_h_mm + 1.2
-    return rows, y_mm
-
-
 def generate_questions_pdf(
     *,
     blank: TestBlank,
@@ -192,107 +142,13 @@ def generate_questions_pdf(
     qr_secret: str,
     qr_payload_version: str,
 ) -> str:
-    """A4: название, QR, вопросы с вариантами A–D (квадраты для отметок — только на бланке A6)."""
-    _ensure_unicode_font()
-    font_name = FONT_REGISTERED_NAME if FONT_REGISTERED_NAME in pdfmetrics.getRegisteredFontNames() else "Helvetica"
-
-    pdf_path = Path(pdf_dir) / f"{blank.uuid}_questions.pdf"
-    page_h_mm = METRICS.page_h_mm
-    page_w_mm = METRICS.page_w_mm
-    margin_mm = 8.0
-    qr_size_mm = 20.0
-    qr_left_mm = page_w_mm - margin_mm - qr_size_mm
-    qr_top_mm = 6.0
-    text_right_mm = page_w_mm - margin_mm
-    bottom_limit_mm = page_h_mm - margin_mm
-
-    qr_payload = make_qr_payload(
-        version=qr_payload_version,
-        blank_uuid=blank.uuid,
-        secret=qr_secret,
+    """A4: название, QR, вопросы с вариантами A–D — HTML из редактора (Quill) в PDF через xhtml2pdf."""
+    return generate_questions_pdf_html(
+        blank=blank,
+        pdf_dir=pdf_dir,
+        qr_secret=qr_secret,
+        qr_payload_version=qr_payload_version,
     )
-    questions_payload = _questions_payload(blank)
-
-    def build(fs: float) -> None:
-        c = canvas.Canvas(str(pdf_path), pagesize=A4)
-        c.setTitle((blank.title or "Вопросы") + f" — {blank.uuid}")
-        c.setStrokeColor(colors.black)
-
-        _draw_qr(c, qr_payload=qr_payload, qr_left_mm=qr_left_mm, qr_top_mm=qr_top_mm, qr_size_mm=qr_size_mm, page_h_mm=page_h_mm)
-
-        title = (blank.title or "Тестовый бланк").strip()
-        title_max_w_pt = max(20.0, (qr_left_mm - margin_mm - 2.0) * mm)
-        title_lines = _wrap_line_to_width(title, font_name, fs + 1.0, title_max_w_pt)
-        title_y_pt = (page_h_mm - 10.0) * mm
-        c.setFont(font_name, fs + 1.0)
-        for line in title_lines:
-            c.drawString(margin_mm * mm, title_y_pt, line)
-            title_y_pt -= (fs + 1.0) * 1.35
-
-        c.setFont(font_name, fs - 0.5)
-        c.drawString(
-            margin_mm * mm,
-            (page_h_mm - 10.0 - len(title_lines) * 4.6 - 4.5) * mm,
-            "Для ответов используйте отдельный бланк A6 с QR-кодом.",
-        )
-
-        header_bottom_mm = max(10.0 + len(title_lines) * 4.2 + 6.0, qr_top_mm + qr_size_mm + 2.0)
-
-        rows, y_end = _compute_rows_questions_with_options(
-            questions_payload=questions_payload,
-            font_name=font_name,
-            font_size=fs,
-            margin_mm=margin_mm,
-            text_right_mm=text_right_mm,
-            header_bottom_mm=header_bottom_mm,
-        )
-        if rows and rows[-1]["row_bottom_mm"] > bottom_limit_mm:
-            raise ValueError("overflow")
-
-        for idx, row in enumerate(rows):
-            row_top_mm = row["row_top_mm"]
-            row_bottom_mm = row["row_bottom_mm"]
-            row_h_mm = row["_row_h_mm"]
-            q_lines = row["_q_lines"]
-
-            x0 = margin_mm * mm
-            y0 = (page_h_mm - row_bottom_mm) * mm
-            w0 = (page_w_mm - 2 * margin_mm) * mm
-            h0 = row_h_mm * mm
-            c.rect(x0, y0, w0, h0, stroke=1, fill=0)
-
-            inner_top_mm = row_top_mm + 3.0
-            y_text_pt = (page_h_mm - inner_top_mm) * mm
-            text_x_mm = margin_mm + 6.0
-            opt_fs = row["_opt_fs"]
-            option_groups = row["_option_groups"]
-            c.setFont(font_name, fs + 0.5)
-            c.drawString(margin_mm * mm, y_text_pt, f"{idx + 1}.")
-            if q_lines:
-                c.drawString(text_x_mm * mm, y_text_pt, q_lines[0])
-            y_text_pt -= (fs + 0.5) * 1.35
-            for line in q_lines[1:]:
-                c.drawString(text_x_mm * mm, y_text_pt, line)
-                y_text_pt -= (fs + 0.5) * 1.35
-            y_text_pt -= 1.2 * mm
-            c.setFont(font_name, opt_fs)
-            line_step_o = _pt_per_line(opt_fs)
-            for oi, og in enumerate(option_groups):
-                for line in og:
-                    c.drawString(text_x_mm * mm, y_text_pt, line)
-                    y_text_pt -= line_step_o
-                if oi < len(option_groups) - 1:
-                    y_text_pt -= 0.5 * mm
-
-        c.showPage()
-        c.save()
-
-    try:
-        build(9.0)
-    except ValueError:
-        build(8.0)
-
-    return str(pdf_path)
 
 
 def _layout_v3_for_answers(*, rows_meta: list[dict], options_left_mm: float, markers: list[dict]) -> dict:
@@ -353,7 +209,7 @@ def generate_answers_pdf_a6(
 
     _draw_qr(c, qr_payload=qr_payload, qr_left_mm=qr_left_mm, qr_top_mm=qr_top_mm, qr_size_mm=qr_size, page_h_mm=page_h_mm)
 
-    title = (blank.title or "Тест").strip()
+    title = html_to_plain((blank.title or "Тест").strip())
     title_max_w_pt = max(16.0, (qr_left_mm - m - 2.0) * mm)
     title_lines = _wrap_line_to_width(title, font_name, 10.0, title_max_w_pt)
     ty = (page_h_mm - 8.0) * mm
