@@ -16,7 +16,7 @@ from .services.test_body_parser import (
 
 web_bp = Blueprint("web", __name__)
 
-MAX_TEST_QUESTIONS = 40
+MAX_TEST_QUESTIONS = 10
 
 SUBJECT_LABELS = {
     "math": "Математика",
@@ -106,6 +106,9 @@ def index():
 
 @web_bp.route("/register", methods=["GET", "POST"])
 def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("web.dashboard"))
+
     if request.method == "POST":
         login = request.form.get("login", "").strip()
         password = request.form.get("password", "").strip()
@@ -133,6 +136,9 @@ def register():
 
 @web_bp.route("/login", methods=["GET", "POST"])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("web.dashboard"))
+
     if request.method == "POST":
         login_val = request.form.get("login", "").strip()
         password = request.form.get("password", "").strip()

@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Личный кабинет{% endblock %}
 {% block content %}
-  <section class="card" style="padding:18px 20px;">
-    <h2 style="margin:0;">Личный кабинет</h2>
-    <p class="muted" style="margin:8px 0 0;">Управляйте тестами, проверкой бланков и аналитикой в одном месте.</p>
+  <section class="card reveal" style="padding:24px 24px; background:linear-gradient(130deg, rgba(35, 72, 154, 0.8), rgba(83, 54, 164, 0.72));">
+    <h2 style="margin:0; font-size:clamp(28px,4vw,36px);">Личный кабинет</h2>
+    <p style="margin:10px 0 0; color:#e3ebff; max-width:760px;">Управляйте тестами, проверкой бланков и аналитикой в одном месте — в обновленном интерфейсе это еще быстрее и удобнее.</p>
   </section>
 
-  <div class="tile-grid">
+  <div class="tile-grid reveal reveal-delay-1">
     <a href="{{ url_for('web.tests_hub') }}" class="tile">
       <div class="tile-title">Центр тестов</div>
       <div class="tile-desc">Создание, поиск, копирование, рейтинги, PDF и статистика по результатам сканирования.</div>
