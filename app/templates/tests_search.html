@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Поиск тестов{% endblock %}
+{% block head %}
+  <style>
+    .tests-search-page .muted-note { color:#64748b; margin-top:6px; }
+    .tests-search-page .back-link-wrap { margin-top:12px; }
+    .tests-search-page .search-form { margin-top:16px; }
+    .tests-search-page .subject-list { display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
+    .tests-search-page .subject-item { font-weight:500; }
+    .tests-search-page .search-actions { margin-top:14px; }
+    .tests-search-page .results-meta { margin-top:12px; color:#475569; font-size:14px; }
+    .tests-search-page .table-wrap { margin-top:16px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .tests-search-page .actions-cell { min-width:300px; }
+    .tests-search-page .rating-cell { min-width:260px; }
+    .tests-search-page .action-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+    .tests-search-page .copy-form { margin:0; }
+    .tests-search-page .rating-info { font-size:13px; color:#475569; margin-bottom:6px; }
+    .tests-search-page .my-rating { color:#16a34a; font-size:13px; }
+    .tests-search-page .rating-form { display:flex; gap:4px; flex-wrap:wrap; }
+    .tests-search-page .pager { margin-top:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .tests-search-page .pager-text { color:#475569; }
+    .tests-search-page .empty-state { margin-top:16px; color:#64748b; }
+
+    #preview-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); z-index: 80; }
+    #preview-modal {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 90;
+      width: min(980px, 96vw);
+      height: min(86vh, 900px);
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.25);
+      padding: 14px;
+    }
+    #preview-modal .hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    #preview-frame {
+      width: 100%;
+      height: calc(100% - 46px);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    @media (max-width: 768px) {
+      .tests-search-page h2 { margin-bottom: 4px; }
+      .tests-search-page .box { padding: 12px; }
+      .tests-search-page .subject-list { gap: 8px 12px; }
+      .tests-search-page .table-wrap { margin-top: 12px; }
+      .tests-search-page .data { min-width: 760px; }
+      .tests-search-page .action-buttons { flex-direction: column; align-items: stretch; }
+      .tests-search-page .action-buttons .btn,
+      .tests-search-page .action-buttons form .btn { width: 100%; text-align: center; }
+      .tests-search-page .rating-form button { flex: 1 1 calc(20% - 4px); min-width: 44px; }
+      .tests-search-page .pager { gap: 6px; }
+
+      #preview-modal {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        max-height: none;
+        left: 0;
+        top: 0;
+        transform: none;
+        border-radius: 0;
+        padding: 10px;
+      }
+      #preview-frame { height: calc(100% - 44px); }
+    }
+  </style>
+{% endblock %}
+{% block content %}
+  <div class="tests-search-page">
+  <h2>Поиск тестов</h2>
+  <p class="muted-note">Отображаются только тесты с включённым «Открыть доступ».</p>
+
+  <div class="back-link-wrap">
+    <a href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
+  </div>
+
+  <form method="get" class="box search-form">
+    <label>Название (часть текста)</label>
+    <input type="text" name="q" value="{{ q }}" placeholder="Например, контрольная" />
+
+    <label style="margin-top:14px;">Предмет</label>
+    <div class="subject-list">
+      {% for key, label in subject_labels.items() %}
+        <label class="subject-item">
+          <input type="checkbox" name="subject" value="{{ key }}" {% if key in subject_keys %}checked{% endif %} />
+          {{ label }}
+        </label>
+      {% endfor %}
+    </div>
+
+    <div class="search-actions">
+      <button class="btn" type="submit">Искать</button>
+    </div>
+  </form>
+
+  {% if items %}
+    <div class="results-meta">Показано {{ items|length }} из {{ total }}.</div>
+    <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Название</th>
+          <th>Вопросов</th>
+          <th>Класс</th>
+          <th>Предмет</th>
+          <th class="actions-cell">Действия</th>
+          <th class="rating-cell">Оценка</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in items %}
+          <tr>
+            <td>{{ t.title if t.title else ('Тест ' ~ t.uuid[:8]) }}</td>
+            <td>{{ t.question_count }}</td>
+            <td>{% if t.grade %}{{ t.grade }}{% else %}—{% endif %}</td>
+            <td>{% if t.subject %}{{ subject_labels.get(t.subject, t.subject) }}{% else %}—{% endif %}</td>
+            <td>
+              <div class="action-buttons">
+                <a class="btn js-preview-open" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_preview', blank_uuid=t.uuid) }}" data-preview-url="{{ url_for('web.tests_preview', blank_uuid=t.uuid) }}">Предпросмотр</a>
+                <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.blank_pdf_questions', blank_uuid=t.uuid) }}">PDF теста</a>
+                <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.blank_pdf_answers', blank_uuid=t.uuid) }}">PDF бланка</a>
+                {% if t.owner_id != current_user.id %}
+                  <form method="post" action="{{ url_for('web.tests_copy', blank_uuid=t.uuid) }}" class="copy-form">
+                    <input type="hidden" name="next" value="{{ return_to }}" />
+                    <button class="btn secondary" type="submit" style="padding:6px 10px; font-size:13px;">Копировать к себе</button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              {% set rs = rating_stats.get(t.id) %}
+              {% set my = my_ratings.get(t.id) %}
+              <div class="rating-info">
+                {% if rs %}
+                  ★ {{ '%.1f'|format(rs[0]) }} ({{ rs[1] }})
+                {% else %}
+                  Пока нет оценок
+                {% endif %}
+              </div>
+              {% if my %}
+                <div class="my-rating">Ваш голос: {{ my }}/5</div>
+              {% else %}
+                <form method="post" action="{{ url_for('web.rate_test', blank_uuid=t.uuid) }}" class="rating-form">
+                  <input type="hidden" name="next" value="{{ return_to }}" />
+                  {% for s in range(1, 6) %}
+                    <button type="submit" name="score" value="{{ s }}" class="btn secondary" style="padding:3px 7px; font-size:12px;">{{ s }}★</button>
+                  {% endfor %}
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% if pages > 1 %}
+      <div class="pager">
+        {% if page > 1 %}
+          <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_search', q=q, subject=subject_keys, page=page-1) }}">← Назад</a>
+        {% endif %}
+        <span class="pager-text">Страница {{ page }} из {{ pages }}</span>
+        {% if page < pages %}
+          <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_search', q=q, subject=subject_keys, page=page+1) }}">Вперёд →</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="box empty-state">Ничего не найдено. Проверьте фильтры или создайте тест с открытым доступом.</div>
+  {% endif %}
+
+  <div id="preview-backdrop"></div>
+  <div id="preview-modal" role="dialog" aria-modal="true" aria-label="Предпросмотр теста">
+    <div class="hdr">
+      <strong>Предпросмотр теста</strong>
+      <button type="button" class="btn secondary" id="preview-close-btn" style="padding:6px 10px;">Закрыть</button>
+    </div>
+    <iframe id="preview-frame" title="Предпросмотр теста" src="about:blank"></iframe>
+  </div>
+
+  <script>
+    (function () {
+      var backdrop = document.getElementById('preview-backdrop');
+      var modal = document.getElementById('preview-modal');
+      var frame = document.getElementById('preview-frame');
+      var closeBtn = document.getElementById('preview-close-btn');
+
+      function openModal(url) {
+        frame.src = url;
+        backdrop.style.display = 'block';
+        modal.style.display = 'block';
+      }
+
+      function closeModal() {
+        backdrop.style.display = 'none';
+        modal.style.display = 'none';
+        frame.src = 'about:blank';
+      }
+
+      document.querySelectorAll('.js-preview-open').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+          e.preventDefault();
+          openModal(el.getAttribute('data-preview-url') || el.getAttribute('href'));
+        });
+      });
+
+      backdrop.addEventListener('click', closeModal);
+      closeBtn.addEventListener('click', closeModal);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+      });
+    })();
+  </script>
+  </div>
+{% endblock %}

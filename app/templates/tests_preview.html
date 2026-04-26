@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Предпросмотр теста{% endblock %}
+{% block head %}
+  <style>
+    .question-block { border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
+    .q-row, .o-row { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: start; }
+    .q-num { font-weight: 700; font-size: 18px; line-height: 1.4; }
+    .o-num { font-weight: 700; font-size: 16px; line-height: 1.4; }
+    .q-body, .o-body { line-height: 1.5; }
+    .q-body img, .o-body img { max-width: 100%; height: auto; }
+    .q-body p, .o-body p { margin: 0 0 6px 0; }
+    .o-row { margin-top: 6px; }
+  </style>
+{% endblock %}
+{% block content %}
+  <h2>{{ blank.title if blank.title else ('Тест ' ~ blank.uuid[:8]) }}</h2>
+  <div style="margin-top:6px; color:#64748b;">
+    Вопросов: {{ blank.question_count }} ·
+    Класс: {% if blank.grade %}{{ blank.grade }}{% else %}—{% endif %} ·
+    Предмет: {% if blank.subject %}{{ subject_labels.get(blank.subject, blank.subject) }}{% else %}—{% endif %}
+  </div>
+
+  <div style="margin-top:12px;">
+    <a href="{{ url_for('web.tests_search') }}">← К поиску тестов</a>
+  </div>
+
+  <div style="margin-top:16px; display:flex; flex-wrap:wrap; gap:10px;">
+    <a class="btn" href="{{ url_for('web.blank_pdf_questions', blank_uuid=blank.uuid) }}">Скачать PDF теста (A4)</a>
+    <a class="btn secondary" href="{{ url_for('web.blank_pdf_answers', blank_uuid=blank.uuid) }}">Скачать бланк ответов (A6)</a>
+  </div>
+
+  {% if blank.questions %}
+    <div style="margin-top:16px;">
+      {% for q in blank.questions|sort(attribute='question_number') %}
+        <div class="question-block">
+          <div class="q-row">
+            <div class="q-num">{{ q.question_number }}.</div>
+            <div class="q-body">{{ q.question_text|safe }}</div>
+          </div>
+          <div class="o-row">
+            <div class="o-num">A)</div>
+            <div class="o-body">{{ q.option_a|safe }}</div>
+          </div>
+          <div class="o-row">
+            <div class="o-num">B)</div>
+            <div class="o-body">{{ q.option_b|safe }}</div>
+          </div>
+          <div class="o-row">
+            <div class="o-num">C)</div>
+            <div class="o-body">{{ q.option_c|safe }}</div>
+          </div>
+          <div class="o-row">
+            <div class="o-num">D)</div>
+            <div class="o-body">{{ q.option_d|safe }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="box" style="margin-top:16px; color:#64748b;">В этом тесте пока нет вопросов.</div>
+  {% endif %}
+{% endblock %}

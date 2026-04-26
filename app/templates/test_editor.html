@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}Редактирование теста{% else %}Создание теста{% endif %}{% endblock %}
+{% block head %}
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+  <style>
+    .editor-shell { margin-top: 8px; }
+    #editor {
+      min-height: 480px;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+    .editor-shell .ql-toolbar.ql-snow {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-bottom: 0;
+      border-radius: 8px 8px 0 0;
+      padding: 8px;
+      flex-wrap: wrap;
+    }
+    .editor-shell .ql-container.ql-snow {
+      border: 1px solid #dee2e6;
+      border-radius: 0 0 8px 8px;
+    }
+    .editor-shell .ql-editor {
+      min-height: 480px;
+    }
+    .editor-shell .ql-editor img {
+      max-width: 100%;
+      height: auto;
+      cursor: default;
+    }
+    .format-help {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #334155;
+      margin-top: 10px;
+    }
+    .format-help pre {
+      margin: 10px 0 0 0;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .help-toggle summary {
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+      list-style: none;
+    }
+    .help-toggle summary::-webkit-details-marker {
+      display: none;
+    }
+    .help-toggle summary::before {
+      content: "▸";
+      margin-right: 6px;
+      color: #475569;
+      display: inline-block;
+      transition: transform 0.15s ease;
+    }
+    .help-toggle[open] summary::before {
+      transform: rotate(90deg);
+    }
+    .help-toggle .help-body {
+      margin-top: 10px;
+    }
+    #test_body { display: none; }
+    #preview-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.62);
+      z-index: 50;
+      backdrop-filter: blur(3px);
+    }
+    #preview-modal {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 60;
+      width: min(1060px, 96vw);
+      max-height: 90vh;
+      overflow: auto;
+      background: linear-gradient(180deg, rgba(26, 38, 66, 0.98), rgba(15, 24, 44, 0.99));
+      border-radius: 16px;
+      border: 1px solid rgba(172, 191, 255, 0.3);
+      box-shadow: 0 28px 70px rgba(2, 8, 30, 0.65);
+      padding: 18px;
+      color: #dce7ff;
+    }
+    #preview-modal .hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      position: sticky;
+      top: 0;
+      background: linear-gradient(180deg, rgba(23, 34, 60, 0.98), rgba(23, 34, 60, 0.85));
+      border: 1px solid rgba(172, 191, 255, 0.2);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    #preview-body {
+      border: 1px solid rgba(172, 191, 255, 0.2);
+      border-radius: 12px;
+      padding: 14px;
+      background: rgba(8, 14, 29, 0.4);
+    }
+    #preview-struct-note { margin-bottom: 10px; }
+    .preview-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .preview-chip {
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 999px;
+      border: 1px solid rgba(172, 191, 255, 0.35);
+      background: rgba(45, 65, 112, 0.5);
+      padding: 5px 10px;
+      color: #dbe6ff;
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+    #preview-rich {
+      border: 1px solid rgba(172, 191, 255, 0.25);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.96);
+      color: #0f172a;
+      padding: 14px;
+      min-height: 180px;
+    }
+    #preview-rich .ql-editor {
+      padding: 0;
+      min-height: 0;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    #preview-rich .ql-editor img {
+      max-width: 100%;
+      height: auto;
+    }
+    #preview-plain-wrap {
+      border: 1px solid rgba(172, 191, 255, 0.25);
+      border-radius: 10px;
+      background: rgba(11, 18, 35, 0.84);
+      padding: 10px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #preview-plain-wrap strong {
+      color: #cddcff;
+      font-size: 13px;
+    }
+    #preview-plain {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #b8c9f6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 900px) {
+      .preview-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <h2>{% if mode == 'edit' %}Редактирование теста{% else %}Создание теста{% endif %}</h2>
+  <div style="margin-top:10px;">
+    <a href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
+  </div>
+
+  <form method="post" id="main-form" action="{% if mode == 'edit' %}{{ url_for('web.tests_edit', blank_uuid=blank.uuid) }}{% else %}{{ url_for('web.tests_new') }}{% endif %}">
+    <div class="box" style="margin-top:16px;">
+      <label for="title">Название теста</label>
+      <input id="title" name="title" type="text" value="{% if mode == 'edit' %}{{ blank.title or '' }}{% endif %}" autocomplete="off" />
+
+      <div style="margin-top:12px; display:flex; align-items:center; gap:10px;">
+        <input id="is_public" name="is_public" type="checkbox" value="on" {% if mode == 'edit' and blank.is_public %}checked{% endif %} />
+        <label for="is_public" style="margin:0; font-weight:600;">Открыть доступ (показывать в поиске)</label>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <div class="col">
+          <label for="grade">Класс (необязательно)</label>
+          <select id="grade" name="grade">
+            <option value="">— не выбран —</option>
+            {% for g in range(1, 12) %}
+              <option value="{{ g }}" {% if mode == 'edit' and blank.grade == g %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col">
+          <label for="subject">Предмет (необязательно)</label>
+          <select id="subject" name="subject">
+            <option value="">— не выбран —</option>
+            {% for key, label in subject_labels.items() %}
+              <option value="{{ key }}" {% if mode == 'edit' and blank.subject == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="box" style="margin-top:16px;">
+      <label for="editor">Текст теста</label>
+      <details class="format-help help-toggle" style="margin-top:14px;">
+        <summary>Подсказка по структуре и примеру теста</summary>
+        <div class="help-body">
+          <strong>Структура вопросов (после преобразования в текст)</strong>
+          <ul style="margin:8px 0 0 18px; padding:0;">
+            <li><strong>Номер задания:</strong> каждая задача начинается с новой строки вида <code>(№1) Текст вопроса</code> или <code>(#1) Текст вопроса</code>. Цифра — это номер вопроса (1, 2, 3 и т.д.).</li>
+            <li><strong>Текст вопроса:</strong> можно писать в одной или нескольких следующих строках — до тех пор, пока не начнутся варианты ответа.</li>
+            <li><strong>Варианты ответа:</strong> обязательно 4 строки подряд с метками <code>(A)</code>, <code>(B)</code>, <code>(C)</code>, <code>(D)</code>.</li>
+            <li><strong>Правильный ответ:</strong> у правильного варианта поставьте звёздочку сразу после буквы, например <code>(C*) правильный вариант</code>. Звёздочка должна быть только у одного варианта.</li>
+          </ul>
+          <strong>Пример</strong>
+          <pre>(№1) Первый вопрос
+(A) Вариант 1
+(B) вариант 2
+(C*) Вариант 3
+(D) Вариант 4
+
+(№2) Второй вопрос
+(A) Вариант 1
+(B*) вариант 2
+(C) Вариант 3
+(D) Вариант 4</pre>
+        </div>
+      </details>
+
+      <div class="editor-shell">
+        <div id="editor"></div>
+      </div>
+      <textarea name="test_body" id="test_body" cols="40" rows="6"></textarea>
+    </div>
+
+    <div style="margin-top:14px; display:flex; flex-wrap:wrap; gap:10px;">
+      <button class="btn secondary" type="button" id="btn-preview">Предпросмотр</button>
+      <button class="btn" type="submit">Сохранить тест</button>
+    </div>
+  </form>
+
+  <div id="preview-backdrop"></div>
+  <div id="preview-modal" role="dialog" aria-modal="true">
+    <div class="hdr">
+      <strong>Предпросмотр форматирования (как в редакторе)</strong>
+      <button type="button" class="btn secondary" id="btn-preview-close" style="padding:6px 10px;">Закрыть</button>
+    </div>
+    <div id="preview-body"></div>
+  </div>
+
+  <script type="application/json" id="initial-plain">{{ body_text | tojson }}</script>
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script src="https://unpkg.com/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
+  <script>
+    const toolbarOptions = [
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ color: [] }, { background: [] }],
+      [{ font: [] }],
+      [{ size: ['small', false, 'large', 'huge'] }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ script: 'sub' }, { script: 'super' }],
+      [{ indent: '-1' }, { indent: '+1' }],
+      [{ direction: 'rtl' }],
+      [{ align: [] }],
+      ['blockquote', 'code-block'],
+      ['link', 'image', 'video'],
+      ['clean'],
+    ];
+
+    function normalizeEditorHtmlToPlain(html) {
+      if (!html || !String(html).trim()) return '';
+      var s = String(html);
+      s = s.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+      s = s.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+      s = s.replace(/<\s*br\s*\/?>/gi, '\n');
+      s = s.replace(/<\/\s*(p|div|h[1-6]|blockquote|li|pre|tr|ul|ol)\s*>/gi, '\n');
+      s = s.replace(/<\s*img[^>]*>/gi, ' ');
+      s = s.replace(/<\s*iframe[^>]*>[\s\S]*?<\/\s*iframe\s*>/gi, ' ');
+      s = s.replace(/<\s*video[^>]*>[\s\S]*?<\/\s*video\s*>/gi, ' ');
+      s = s.replace(/<[^>]+>/g, '');
+      s = s.replace(/\u00a0/g, ' ');
+      s = s.replace(/[ \t\f\v]+\n/g, '\n');
+      s = s.replace(/\n[ \t\f\v]+/g, '\n');
+      s = s.replace(/\n{3,}/g, '\n\n');
+      return s.trim();
+    }
+
+    const Q_RE = /^\s*(?:\(\s*)?№\s*(\d+)(?:\s*\))?\s*[.):]?\s*(.*)$/i;
+    const Q_HASH_RE = /^\s*(?:\(\s*)?#\s*(\d+)(?:\s*\))?\s*[.):]?\s*(.*)$/;
+    const O_RE = /^\s*(?:\(\s*)?([ABCD])(\*?)(?:\s*\))?\s*[.):]?\s*(.*)$/i;
+
+    function parseBodyClient(text) {
+      const lines = text.split(/\r?\n/).map(function (ln) {
+        return ln.replace(/\s+$/, '');
+      });
+      var i = 0;
+      var out = [];
+
+      function skipBlanks() {
+        while (i < lines.length && !String(lines[i]).trim()) i += 1;
+      }
+      function isQ(s) {
+        return Q_RE.test(s) || Q_HASH_RE.test(s);
+      }
+      function matchQ(s) {
+        var m = s.match(Q_RE);
+        if (m) return m;
+        return s.match(Q_HASH_RE);
+      }
+      function isO(s) {
+        return O_RE.test(s);
+      }
+
+      while (true) {
+        skipBlanks();
+        if (i >= lines.length) break;
+        var line = lines[i];
+        if (!isQ(line)) throw new Error('Строка ' + (i + 1) + ': ожидался заголовок вопроса ((№1) … или (#1) …)');
+        var mq = matchQ(line);
+        var qnum = parseInt(mq[1], 10);
+        var first = (mq[2] || '').trim();
+        i += 1;
+        var qParts = [];
+        if (first) qParts.push(first);
+        while (true) {
+          skipBlanks();
+          if (i >= lines.length) break;
+          var nxt = lines[i];
+          if (isQ(nxt) || isO(nxt)) break;
+          qParts.push(nxt);
+          i += 1;
+        }
+        var qBody = qParts.join('\n').trim();
+        if (!qBody) throw new Error('Вопрос №' + qnum + ': пустой текст вопроса');
+
+        var opts = {};
+        var corr = null;
+        for (var k = 0; k < 4; k += 1) {
+          skipBlanks();
+          if (i >= lines.length) throw new Error('Вопрос №' + qnum + ': не хватает вариантов A–D');
+          nxt = lines[i];
+          if (isQ(nxt)) throw new Error('Вопрос №' + qnum + ': не хватает вариантов перед следующим вопросом');
+          var om = nxt.match(O_RE);
+          if (!om) throw new Error('Строка ' + (i + 1) + ': ожидался вариант (A)–(D)');
+          var letter = om[1].toUpperCase();
+          var star = om[2];
+          var body = (om[3] || '').trim();
+          if (opts[letter]) throw new Error('Вопрос №' + qnum + ': вариант ' + letter + ' дважды');
+          opts[letter] = body;
+          if (star === '*') {
+            if (corr !== null) throw new Error('Вопрос №' + qnum + ': несколько верных «*»');
+            corr = letter.charCodeAt(0) - 'A'.charCodeAt(0);
+          }
+          i += 1;
+        }
+        ['A', 'B', 'C', 'D'].forEach(function (L) {
+          if (!(L in opts)) throw new Error('Вопрос №' + qnum + ': нет варианта ' + L);
+        });
+        if (corr === null) throw new Error('Вопрос №' + qnum + ': отметьте верный вариант звёздочкой (например (C*))');
+
+        out.push({ qnum: qnum, q: qBody, opts: opts, correct: corr });
+      }
+      skipBlanks();
+      if (i < lines.length) throw new Error('Строка ' + (i + 1) + ': лишний текст в конце');
+      if (!out.length) throw new Error('Нет ни одного вопроса');
+      return out;
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.ImageResize && window.Quill && !Quill.imports['modules/imageResize']) {
+        Quill.register('modules/imageResize', window.ImageResize);
+      }
+      var quillModules = { toolbar: toolbarOptions };
+      if (window.ImageResize) {
+        quillModules.imageResize = {
+          modules: ['Resize', 'DisplaySize', 'Toolbar'],
+        };
+      }
+
+      var quill = new Quill('#editor', {
+        theme: 'snow',
+        modules: quillModules,
+        placeholder: 'Введите текст теста…',
+        readOnly: false,
+      });
+
+      var initial = '';
+      try {
+        initial = JSON.parse(document.getElementById('initial-plain').textContent || '""');
+      } catch (e) {
+        initial = '';
+      }
+      if (initial) {
+        var t = String(initial).trim();
+        if (t.charAt(0) === '<') {
+          quill.clipboard.dangerouslyPasteHTML(0, initial, 'silent');
+        } else {
+          quill.setText(initial);
+        }
+      }
+
+      quill.getModule('toolbar').addHandler('image', function () {
+        var input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+        input.onchange = function () {
+          var file = input.files && input.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            var range = quill.getSelection(true);
+            var idx = range ? range.index : quill.getLength();
+            quill.insertEmbed(idx, 'image', e.target.result, 'user');
+            quill.setSelection(idx + 1, 0, 'silent');
+          };
+          reader.readAsDataURL(file);
+        };
+      });
+
+      document.getElementById('main-form').addEventListener('submit', function () {
+        document.getElementById('test_body').value = quill.root.innerHTML;
+      });
+
+      document.getElementById('btn-preview').addEventListener('click', function () {
+        openPreview(quill);
+      });
+      document.getElementById('btn-preview-close').addEventListener('click', closePreview);
+      document.getElementById('preview-backdrop').addEventListener('click', closePreview);
+    });
+
+    function openPreview(quillInst) {
+      var title = (document.getElementById('title').value || '').trim();
+      var plain = normalizeEditorHtmlToPlain(quillInst.root.innerHTML);
+      var html = '';
+      var parserState = 'Ошибка структуры';
+      var questionCount = 0;
+      try {
+        var parsed = parseBodyClient(plain);
+        questionCount = parsed.length;
+        parserState = 'Структура корректна';
+        parserClass = 'success';
+        html += '<div id="preview-struct-note" class="flash success" style="margin:0 0 10px 0;">Структура вопросов корректна. Можно сохранять тест.</div>';
+      } catch (e) {
+        html += '<div id="preview-struct-note" class="flash error" style="margin:0 0 10px 0;">' + escapeHtml(e.message || String(e)) + '</div>';
+      }
+      html += '<div class="preview-meta">';
+      html += '<span class="preview-chip">Режим: предпросмотр</span>';
+      html += '<span class="preview-chip">Вопросов: ' + questionCount + '</span>';
+      html += '<span class="preview-chip">Статус: ' + parserState + '</span>';
+      html += '</div>';
+      html += '<div class="preview-grid">';
+      html += '<div id="preview-rich"><div class="ql-editor ql-snow">';
+      if (title) {
+        html += '<h2 style="margin:0 0 12px 0;">' + escapeHtml(title) + '</h2>';
+      }
+      html += quillInst.root.innerHTML;
+      html += '</div></div>';
+      html += '<div id="preview-plain-wrap">';
+      html += '<strong>Нормализованный текст для парсинга</strong>';
+      html += '<pre id="preview-plain">' + escapeHtml(plain || 'Пусто') + '</pre>';
+      html += '</div>';
+      html += '</div>';
+      document.getElementById('preview-body').innerHTML = html;
+      document.getElementById('preview-backdrop').style.display = 'block';
+      document.getElementById('preview-modal').style.display = 'block';
+    }
+
+    function closePreview() {
+      document.getElementById('preview-backdrop').style.display = 'none';
+      document.getElementById('preview-modal').style.display = 'none';
+    }
+  </script>
+{% endblock %}

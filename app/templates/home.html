@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}QuizOrbit — создавайте и проверяйте тесты{% endblock %}
+{% block content %}
+  <section class="card reveal" style="padding:30px; margin-top:6px; background:linear-gradient(135deg,#23489a 0%,#2f3b8a 44%,#5336a4 100%); color:#fff; position:relative; overflow:hidden;">
+    <div style="position:absolute; width:360px; height:360px; border-radius:50%; top:-160px; right:-80px; background:rgba(255,255,255,.13); filter:blur(0.5px);"></div>
+    <div style="position:absolute; width:180px; height:180px; border-radius:50%; bottom:-60px; right:180px; background:rgba(255,255,255,.1);"></div>
+    <div style="max-width:780px; position:relative;">
+      <h1 style="margin:10px 0 10px; font-size:clamp(32px,5vw,52px); line-height:1.05;">Современное тестирование без ручной проверки</h1>
+      <p style="margin:0; font-size:17px; line-height:1.55; opacity:.96;">
+        Создавайте тесты, проверяйте бланки по фото и сразу получайте аналитику по результатам.
+      </p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:16px;">
+        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px; padding:10px 12px;">Запуск теста за минуты</div>
+        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px; padding:10px 12px;">Проверка работ по фото</div>
+        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px; padding:10px 12px;">Моментальная статистика</div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; align-items:center;">
+        <a class="btn hover-lift" style="background:#fff; color:#1b2d6f; font-weight:700;" href="{{ url_for('web.register') }}">Начать бесплатно</a>
+        <a href="{{ url_for('web.login') }}" style="color:#e4ebff; font-weight:600;">Уже есть аккаунт</a>
+      </div>
+    </div>
+  </section>
+
+{% endblock %}

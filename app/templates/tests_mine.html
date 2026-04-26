@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Мои тесты — список{% endblock %}
+{% block head %}
+  <style>
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .actions-grid .btn {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+  </style>
+{% endblock %}
+{% block content %}
+  <h2>Мои тесты</h2>
+  <div style="margin-top:12px;">
+    <a href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
+  </div>
+
+  <div class="box" style="margin-top:16px;">
+    <form method="get" action="{{ url_for('web.tests_mine') }}" style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div style="min-width:220px; flex:1;">
+        <label for="q">Поиск по названию</label>
+        <input id="q" name="q" type="text" value="{{ q or '' }}" placeholder="Введите часть названия..." />
+      </div>
+      <div>
+        <label for="grade">Класс</label>
+        <select id="grade" name="grade">
+          <option value="">Все</option>
+          {% for g in range(1, 12) %}
+            <option value="{{ g }}" {% if grade == g %}selected{% endif %}>{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="subject">Предмет</label>
+        <select id="subject" name="subject">
+          <option value="">Все</option>
+          {% for key, label in subject_labels.items() %}
+            <option value="{{ key }}" {% if subject == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="sort">Сортировка</label>
+        <select id="sort" name="sort">
+          <option value="created_desc" {% if sort == 'created_desc' %}selected{% endif %}>Сначала новые</option>
+          <option value="grade_asc" {% if sort == 'grade_asc' %}selected{% endif %}>Класс: по возрастанию</option>
+          <option value="grade_desc" {% if sort == 'grade_desc' %}selected{% endif %}>Класс: по убыванию</option>
+          <option value="subject_asc" {% if sort == 'subject_asc' %}selected{% endif %}>Предмет: А-Я</option>
+          <option value="subject_desc" {% if sort == 'subject_desc' %}selected{% endif %}>Предмет: Я-А</option>
+          <option value="title_asc" {% if sort == 'title_asc' %}selected{% endif %}>Название: А-Я</option>
+          <option value="title_desc" {% if sort == 'title_desc' %}selected{% endif %}>Название: Я-А</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" type="submit">Применить</button>
+        <a class="btn secondary" href="{{ url_for('web.tests_mine') }}">Сбросить</a>
+      </div>
+    </form>
+  </div>
+
+  {% if blanks %}
+    <div style="margin-top:12px; color:#475569; font-size:14px;">
+      Показано {{ blanks|length }} из {{ total }}.
+    </div>
+    <table class="data" style="margin-top:16px;">
+      <thead>
+        <tr>
+          <th>Название</th>
+          <th>Вопросов</th>
+          <th>Доступ</th>
+          <th>Класс</th>
+          <th>Предмет</th>
+          <th style="min-width:260px;">Действия</th>
+          <th style="min-width:260px;">Оценка</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in blanks %}
+          <tr>
+            <td>{{ b.title if b.title else ('Тест ' ~ b.uuid[:8]) }}</td>
+            <td>{{ b.question_count }}</td>
+            <td>{% if b.is_public %}Открыт{% else %}Закрыт{% endif %}</td>
+            <td>{% if b.grade %}{{ b.grade }}{% else %}—{% endif %}</td>
+            <td>{% if b.subject %}{{ subject_labels.get(b.subject, b.subject) }}{% else %}—{% endif %}</td>
+            <td>
+              <div class="actions-grid">
+                <a class="btn" href="{{ url_for('web.tests_edit', blank_uuid=b.uuid) }}">Редактировать</a>
+                <a class="btn secondary" href="{{ url_for('web.blank_pdf_questions', blank_uuid=b.uuid) }}">PDF вопросы</a>
+                <a class="btn secondary" href="{{ url_for('web.tests_stats', blank_uuid=b.uuid) }}">Статистика</a>
+                <a class="btn secondary" href="{{ url_for('web.blank_pdf_answers', blank_uuid=b.uuid) }}">PDF бланк</a>
+              </div>
+            </td>
+            <td>
+              {% set rs = rating_stats.get(b.id) %}
+              {% set my = my_ratings.get(b.id) %}
+              <div style="font-size:13px; color:#475569; margin-bottom:6px;">
+                {% if rs %}
+                  ★ {{ '%.1f'|format(rs[0]) }} ({{ rs[1] }})
+                {% else %}
+                  Пока нет оценок
+                {% endif %}
+              </div>
+              {% if my %}
+                <div style="color:#16a34a; font-size:13px;">Ваш голос: {{ my }}/5</div>
+              {% else %}
+                <form method="post" action="{{ url_for('web.rate_test', blank_uuid=b.uuid) }}" style="display:flex; gap:4px; flex-wrap:wrap;">
+                  <input type="hidden" name="next" value="{{ return_to }}" />
+                  {% for s in range(1, 6) %}
+                    <button type="submit" name="score" value="{{ s }}" class="btn secondary" style="padding:3px 7px; font-size:12px;">{{ s }}★</button>
+                  {% endfor %}
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if pages > 1 %}
+      <div style="margin-top:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        {% if page > 1 %}
+          <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_mine', page=page-1, **query_args) }}">← Назад</a>
+        {% endif %}
+        <span style="color:#475569;">Страница {{ page }} из {{ pages }}</span>
+        {% if page < pages %}
+          <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_mine', page=page+1, **query_args) }}">Вперёд →</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="box" style="margin-top:16px; color:#64748b;">
+      {% if total == 0 and not q and not grade and not subject %}
+        Пока нет тестов. Создайте первый через «Создать тест».
+      {% else %}
+        По заданным параметрам тесты не найдены.
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock %}

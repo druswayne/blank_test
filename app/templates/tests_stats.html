@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Статистика теста{% endblock %}
+{% block content %}
+  <h2>Статистика: {{ blank.title if blank.title else ('Тест ' ~ blank.uuid[:8]) }}</h2>
+  <div style="margin-top:10px;">
+    <a href="{{ url_for('web.tests_mine') }}">← К списку «Мои тесты»</a>
+  </div>
+
+  <div class="box" style="margin-top:16px;">
+    <div><strong>Всего попыток по вопросам:</strong> {{ total_attempts }}</div>
+    <div style="margin-top:4px;"><strong>Суммарно правильных ответов:</strong> {{ total_correct }}</div>
+    <div style="margin-top:4px;"><strong>Общий процент правильных:</strong> {{ '%.1f'|format(overall_pct) }}%</div>
+  </div>
+
+  {% if rows %}
+    <table class="data" style="margin-top:16px;">
+      <thead>
+        <tr>
+          <th>Вопрос</th>
+          <th>Правильность</th>
+          <th>A</th>
+          <th>B</th>
+          <th>C</th>
+          <th>D</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>№{{ r.question_number }}</td>
+            <td>{{ r.correct }}/{{ r.attempts }} ({{ '%.1f'|format(r.correct_pct) }}%)</td>
+            <td>{{ r.options.A.count }}/{{ r.attempts }} ({{ '%.1f'|format(r.options.A.pct) }}%)</td>
+            <td>{{ r.options.B.count }}/{{ r.attempts }} ({{ '%.1f'|format(r.options.B.pct) }}%)</td>
+            <td>{{ r.options.C.count }}/{{ r.attempts }} ({{ '%.1f'|format(r.options.C.pct) }}%)</td>
+            <td>{{ r.options.D.count }}/{{ r.attempts }} ({{ '%.1f'|format(r.options.D.pct) }}%)</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="box" style="margin-top:16px; color:#64748b;">Пока нет данных сканирования для этого теста.</div>
+  {% endif %}
+{% endblock %}
