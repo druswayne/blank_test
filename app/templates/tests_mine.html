@@ -11,12 +11,13 @@
       width: 100%;
       padding: 6px 10px;
       font-size: 13px;
+      text-align: center;
     }
     .actions-grid .btn-download {
       position: relative;
       display: inline-flex;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: center;
       background: #16a34a;
       border-color: #16a34a;
       color: #fff;
@@ -52,6 +53,10 @@
     }
     .actions-grid .btn-download.nowrap {
       white-space: nowrap;
+    }
+    .actions-grid .btn-download > span:first-child {
+      width: 100%;
+      text-align: center;
     }
   </style>
 {% endblock %}
