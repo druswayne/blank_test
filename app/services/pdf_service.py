@@ -207,103 +207,129 @@ def generate_answers_pdf_a6(
     c.setTitle(f"Ответы — {blank.uuid}")
     c.setStrokeColor(colors.black)
 
-    _draw_qr(c, qr_payload=qr_payload, qr_left_mm=qr_left_mm, qr_top_mm=qr_top_mm, qr_size_mm=qr_size, page_h_mm=page_h_mm)
-
-    title = html_to_plain((blank.title or "Тест").strip())
-    title_max_w_pt = max(16.0, (qr_left_mm - m - 2.0) * mm)
-    title_lines = _wrap_line_to_width(title, font_name, 10.0, title_max_w_pt)
-    ty = (page_h_mm - 8.0) * mm
-    c.setFont(font_name, 10.0)
-    for line in title_lines[:4]:
-        c.drawString(m * mm, ty, line)
-        ty -= 11.0
-
-    y_cursor_mm = 8.0 + len(title_lines[:4]) * 3.8 + 2.0
-    lx = m * mm
-    y_fio_pt = (page_h_mm - y_cursor_mm) * mm
-    c.setFont(font_name, 8.0)
-    c.drawString(lx, y_fio_pt, "ФИО: ________________________________________________")
-    y_cursor_mm += 5.0
-    y_cls_pt = (page_h_mm - y_cursor_mm) * mm
-    c.drawString(lx, y_cls_pt, "Класс: ______________________________________________")
-    y_cursor_mm += 7.0
-
-    header_bottom_mm = max(qr_top_mm + qr_size + 1.5, y_cursor_mm)
-    content_top_mm = header_bottom_mm + 2.0
-
     options_left_mm = m + A6M.number_block_mm
     checkbox_outer_pt = outer * mm
     labels = ["A", "B", "C", "D"]
-    rows_meta: list[dict] = []
-
-    # Для drawString(y) — это базовая линия; смещение от центра глифа до базовой линии (~центр цифры).
-    num_font_pt = 8.5
-    baseline_from_visual_center_pt = num_font_pt * 0.38
-
-    for i in range(n):
-        y_row_top = content_top_mm + i * row_h
-        y_outer_top = y_row_top + max(0.0, (row_h - outer) / 2.0)
-        rows_meta.append({"index": i, "checkbox_anchor_top_mm": float(y_outer_top)})
-
-        # Центр блока квадратов по вертикали (от верхнего края листа, мм) → совпадает с центром номера.
-        y_center_from_top_mm = y_outer_top + outer / 2.0
-        y_center_canvas = (page_h_mm - y_center_from_top_mm) * mm
-        num_y_pt = y_center_canvas - baseline_from_visual_center_pt
-        c.setFont(font_name, num_font_pt)
-        c.drawString(m * mm, num_y_pt, f"{i + 1}.")
-
-        for opt_index in range(4):
-            x_outer = (options_left_mm + opt_index * (outer + gap_x)) * mm
-            y_ob = (page_h_mm - y_outer_top - outer) * mm
-            c.rect(x_outer, y_ob, checkbox_outer_pt, checkbox_outer_pt, stroke=1, fill=0)
-            c.setFont(font_name, 6.5)
-            cx = x_outer + checkbox_outer_pt / 2 - 1.5 * mm
-            cy = y_ob + checkbox_outer_pt + 0.45 * mm
-            c.drawString(cx, cy, labels[opt_index])
-            c.setFont(font_name, num_font_pt)
-
-    # ArUco-метки для точной геометрической калибровки на сервере
-    grid_top_mm = content_top_mm
-    grid_bottom_mm = content_top_mm + n * row_h
-    grid_left_mm = options_left_mm
-    grid_right_mm = options_left_mm + 3 * (outer + gap_x) + outer
     marker_size_mm = 6.0
-    # Сдвигаем ArUco дальше от полей ответов, чтобы не перекрывать зоны выбора.
     marker_offset_mm = 6.5
-    marker_defs = [
-        ("tl", 11, grid_left_mm - marker_offset_mm, grid_top_mm - marker_offset_mm),
-        ("tr", 12, grid_right_mm + marker_offset_mm - marker_size_mm, grid_top_mm - marker_offset_mm),
-        ("bl", 13, grid_left_mm - marker_offset_mm, grid_bottom_mm + marker_offset_mm - marker_size_mm),
-        ("br", 14, grid_right_mm + marker_offset_mm - marker_size_mm, grid_bottom_mm + marker_offset_mm - marker_size_mm),
-    ]
-    markers: list[dict] = []
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     marker_px = 220
-    for name, marker_id, mx, my in marker_defs:
-        marker_img = cv2.aruco.generateImageMarker(aruco_dict, marker_id, marker_px)
-        pil_img = Image.fromarray(marker_img)
-        yb = (page_h_mm - my - marker_size_mm) * mm
-        c.drawImage(ImageReader(pil_img), mx * mm, yb, width=marker_size_mm * mm, height=marker_size_mm * mm, mask="auto")
-        markers.append(
-            {
-                "name": name,
-                "id": int(marker_id),
-                "x_mm": float(mx + marker_size_mm / 2.0),
-                "y_mm": float(my + marker_size_mm / 2.0),
-                "size_mm": float(marker_size_mm),
-            }
-        )
+    rows_meta_first_page: list[dict] = []
+    markers_first_page: list[dict] = []
 
-    last_bottom = content_top_mm + n * row_h + m
-    if last_bottom > page_h_mm:
-        c.setFont(font_name, 7.0)
-        c.setFillColor(colors.red)
-        c.drawString(m * mm, m * mm, "Предупреждение: не все задания поместились на лист.")
+    def _draw_answer_page(page_idx: int) -> tuple[list[dict], list[dict]]:
+        _draw_qr(c, qr_payload=qr_payload, qr_left_mm=qr_left_mm, qr_top_mm=qr_top_mm, qr_size_mm=qr_size, page_h_mm=page_h_mm)
 
-    c.showPage()
+        title = html_to_plain((blank.title or "Тест").strip())
+        title_max_w_pt = max(16.0, (qr_left_mm - m - 2.0) * mm)
+        title_lines = _wrap_line_to_width(title, font_name, 10.0, title_max_w_pt)
+        ty = (page_h_mm - 8.0) * mm
+        c.setFont(font_name, 10.0)
+        for line in title_lines[:4]:
+            c.drawString(m * mm, ty, line)
+            ty -= 11.0
+
+        y_cursor_mm = 8.0 + len(title_lines[:4]) * 3.8 + 2.0
+        lx = m * mm
+        y_fio_pt = (page_h_mm - y_cursor_mm) * mm
+        c.setFont(font_name, 8.0)
+        # Линии ФИО/Класс ограничиваем до левого края QR, чтобы не было наложения.
+        text_right_mm = qr_left_mm - 2.0
+        c.drawString(lx, y_fio_pt, "ФИО:")
+        fio_line_start_pt = lx + _string_width("ФИО: ", font_name, 8.0)
+        fio_line_end_pt = text_right_mm * mm
+        if fio_line_end_pt > fio_line_start_pt:
+            c.line(fio_line_start_pt, y_fio_pt - 1.0, fio_line_end_pt, y_fio_pt - 1.0)
+        y_cursor_mm += 5.0
+        y_cls_pt = (page_h_mm - y_cursor_mm) * mm
+        c.drawString(lx, y_cls_pt, "Класс:")
+        cls_line_start_pt = lx + _string_width("Класс: ", font_name, 8.0)
+        cls_line_end_pt = text_right_mm * mm
+        if cls_line_end_pt > cls_line_start_pt:
+            c.line(cls_line_start_pt, y_cls_pt - 1.0, cls_line_end_pt, y_cls_pt - 1.0)
+        y_cursor_mm += 7.0
+
+        header_bottom_mm = max(qr_top_mm + qr_size + 1.5, y_cursor_mm)
+        content_top_mm = header_bottom_mm + 2.0
+
+        rows_meta: list[dict] = []
+
+        # Для drawString(y) — это базовая линия; смещение от центра глифа до базовой линии (~центр цифры).
+        num_font_pt = 8.5
+        baseline_from_visual_center_pt = num_font_pt * 0.38
+
+        for i in range(n):
+            y_row_top = content_top_mm + i * row_h
+            y_outer_top = y_row_top + max(0.0, (row_h - outer) / 2.0)
+            rows_meta.append({"index": i, "checkbox_anchor_top_mm": float(y_outer_top)})
+
+            # Центр блока квадратов по вертикали (от верхнего края листа, мм) → совпадает с центром номера.
+            y_center_from_top_mm = y_outer_top + outer / 2.0
+            y_center_canvas = (page_h_mm - y_center_from_top_mm) * mm
+            num_y_pt = y_center_canvas - baseline_from_visual_center_pt
+            c.setFont(font_name, num_font_pt)
+            c.drawString(m * mm, num_y_pt, f"{i + 1}.")
+
+            for opt_index in range(4):
+                x_outer = (options_left_mm + opt_index * (outer + gap_x)) * mm
+                y_ob = (page_h_mm - y_outer_top - outer) * mm
+                c.rect(x_outer, y_ob, checkbox_outer_pt, checkbox_outer_pt, stroke=1, fill=0)
+                c.setFont(font_name, 6.5)
+                cx = x_outer + checkbox_outer_pt / 2 - 1.5 * mm
+                cy = y_ob + checkbox_outer_pt + 0.45 * mm
+                c.drawString(cx, cy, labels[opt_index])
+                c.setFont(font_name, num_font_pt)
+
+        # ArUco-метки для точной геометрической калибровки на сервере
+        grid_top_mm = content_top_mm
+        grid_bottom_mm = content_top_mm + n * row_h
+        grid_left_mm = options_left_mm
+        grid_right_mm = options_left_mm + 3 * (outer + gap_x) + outer
+        marker_defs = [
+            ("tl", 11, grid_left_mm - marker_offset_mm, grid_top_mm - marker_offset_mm),
+            ("tr", 12, grid_right_mm + marker_offset_mm - marker_size_mm, grid_top_mm - marker_offset_mm),
+            ("bl", 13, grid_left_mm - marker_offset_mm, grid_bottom_mm + marker_offset_mm - marker_size_mm),
+            ("br", 14, grid_right_mm + marker_offset_mm - marker_size_mm, grid_bottom_mm + marker_offset_mm - marker_size_mm),
+        ]
+        markers: list[dict] = []
+        for name, marker_id, mx, my in marker_defs:
+            marker_img = cv2.aruco.generateImageMarker(aruco_dict, marker_id, marker_px)
+            pil_img = Image.fromarray(marker_img)
+            yb = (page_h_mm - my - marker_size_mm) * mm
+            c.drawImage(ImageReader(pil_img), mx * mm, yb, width=marker_size_mm * mm, height=marker_size_mm * mm, mask="auto")
+            markers.append(
+                {
+                    "name": name,
+                    "id": int(marker_id),
+                    "x_mm": float(mx + marker_size_mm / 2.0),
+                    "y_mm": float(my + marker_size_mm / 2.0),
+                    "size_mm": float(marker_size_mm),
+                }
+            )
+
+        last_bottom = content_top_mm + n * row_h + m
+        if last_bottom > page_h_mm:
+            c.setFont(font_name, 7.0)
+            c.setFillColor(colors.red)
+            c.drawString(m * mm, m * mm, "Предупреждение: не все задания поместились на лист.")
+            c.setFillColor(colors.black)
+
+        if page_idx == 0:
+            rows_meta_first_page.extend(rows_meta)
+            markers_first_page.extend(markers)
+        return rows_meta, markers
+
+    for page_idx in range(2):
+        _draw_answer_page(page_idx)
+        c.showPage()
+
     c.save()
 
-    layout = _layout_v3_for_answers(rows_meta=rows_meta, options_left_mm=options_left_mm, markers=markers)
+    layout = _layout_v3_for_answers(
+        rows_meta=rows_meta_first_page,
+        options_left_mm=options_left_mm,
+        markers=markers_first_page,
+    )
     return str(pdf_path), layout
 
 

@@ -12,6 +12,47 @@
       padding: 6px 10px;
       font-size: 13px;
     }
+    .actions-grid .btn-download {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      background: #16a34a;
+      border-color: #16a34a;
+      color: #fff;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+      padding-right: 34px;
+      overflow: visible;
+    }
+    .actions-grid .btn-download:hover {
+      background: #15803d;
+      border-color: #15803d;
+      color: #fff;
+    }
+    .actions-grid .btn-download .download-icon {
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #fff;
+      color: #16a34a;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 900;
+      border: 2px solid #16a34a;
+    }
+    .actions-grid .btn-download.nowrap {
+      white-space: nowrap;
+    }
   </style>
 {% endblock %}
 {% block content %}
@@ -90,9 +131,9 @@
             <td>
               <div class="actions-grid">
                 <a class="btn" href="{{ url_for('web.tests_edit', blank_uuid=b.uuid) }}">Редактировать</a>
-                <a class="btn secondary" href="{{ url_for('web.blank_pdf_questions', blank_uuid=b.uuid) }}">PDF вопросы</a>
+                <a class="btn btn-download" href="{{ url_for('web.blank_pdf_questions', blank_uuid=b.uuid) }}"><span>Тест</span><span class="download-icon">↓</span></a>
                 <a class="btn secondary" href="{{ url_for('web.tests_stats', blank_uuid=b.uuid) }}">Статистика</a>
-                <a class="btn secondary" href="{{ url_for('web.blank_pdf_answers', blank_uuid=b.uuid) }}">PDF бланк</a>
+                <a class="btn btn-download nowrap" href="{{ url_for('web.blank_pdf_answers', blank_uuid=b.uuid) }}"><span>Бланк ответов</span><span class="download-icon">↓</span></a>
                 <form method="post" action="{{ url_for('web.tests_delete', blank_uuid=b.uuid) }}" style="margin:0;">
                   <input type="hidden" name="next" value="{{ return_to }}" />
                   <button
