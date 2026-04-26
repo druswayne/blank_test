@@ -93,6 +93,17 @@
                 <a class="btn secondary" href="{{ url_for('web.blank_pdf_questions', blank_uuid=b.uuid) }}">PDF вопросы</a>
                 <a class="btn secondary" href="{{ url_for('web.tests_stats', blank_uuid=b.uuid) }}">Статистика</a>
                 <a class="btn secondary" href="{{ url_for('web.blank_pdf_answers', blank_uuid=b.uuid) }}">PDF бланк</a>
+                <form method="post" action="{{ url_for('web.tests_delete', blank_uuid=b.uuid) }}" style="margin:0;">
+                  <input type="hidden" name="next" value="{{ return_to }}" />
+                  <button
+                    class="btn secondary"
+                    type="submit"
+                    style="width:100%; background:#7f1d1d; border-color:#b91c1c;"
+                    onclick="return confirm('Удалить этот тест? Это действие нельзя отменить.')"
+                  >
+                    Удалить
+                  </button>
+                </form>
               </div>
             </td>
             <td>

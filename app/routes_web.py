@@ -490,6 +490,34 @@ def tests_edit(blank_uuid: str):
     )
 
 
+@web_bp.route("/tests/<blank_uuid>/delete", methods=["POST"])
+@login_required
+def tests_delete(blank_uuid: str):
+    blank = TestBlank.query.filter_by(uuid=blank_uuid, owner_id=current_user.id).first()
+    if not blank:
+        abort(404)
+
+    pdf_dir = Path(current_app.config["PDF_DIR"])
+    files_to_remove = [
+        pdf_dir / f"{blank.uuid}_questions.pdf",
+        pdf_dir / f"{blank.uuid}_answers.pdf",
+    ]
+
+    db.session.delete(blank)
+    db.session.commit()
+
+    for fp in files_to_remove:
+        try:
+            fp.unlink(missing_ok=True)
+        except Exception:
+            # Не прерываем запрос, если файл уже удалён или занят.
+            pass
+
+    flash("Тест удалён.", "success")
+    nxt = request.form.get("next") or url_for("web.tests_mine")
+    return redirect(nxt)
+
+
 @web_bp.route("/tests/<blank_uuid>/stats", methods=["GET"])
 @login_required
 def tests_stats(blank_uuid: str):
