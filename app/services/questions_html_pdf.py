@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import logging
 import re
+import textwrap
 from html import escape
 from io import BytesIO
 from pathlib import Path
@@ -223,10 +224,45 @@ def _document_font_css() -> str:
     return f"\nbody, .ql-editor {{ font-family: {_DOC_FONT_STACK} !important; }}\n"
 
 
+def _build_header_title(title: str) -> tuple[str, int]:
+    """
+    Формирует заголовок для шапки:
+    - стараемся оставить в 1 строку, уменьшая размер шрифта;
+    - после 80 символов переносим на следующую строку.
+    """
+    clean = re.sub(r"\s+", " ", (title or "").strip())
+    if not clean:
+        clean = "Тестовый бланк"
+
+    wrapped = textwrap.wrap(
+        clean,
+        width=80,
+        break_long_words=True,
+        break_on_hyphens=False,
+    )
+    if not wrapped:
+        wrapped = [clean]
+
+    longest = max(len(line) for line in wrapped)
+    if longest <= 36:
+        font_size = 17
+    elif longest <= 48:
+        font_size = 15
+    elif longest <= 62:
+        font_size = 13
+    else:
+        font_size = 11
+
+    title_html = "<br/>".join(escape(line) for line in wrapped)
+    return title_html, font_size
+
+
 def build_questions_print_html(*, blank: TestBlank, qr_payload: str) -> str:
     """Полная HTML-страница UTF-8 для просмотра в браузере и печати в PDF через Chromium."""
     qr_uri = _qr_png_data_uri(qr_payload)
-    title_esc = escape((blank.title or "Тестовый бланк").strip())
+    title_text = (blank.title or "Тестовый бланк").strip()
+    title_esc = escape(title_text)
+    title_html, title_font_size = _build_header_title(title_text)
     font_css = _document_font_css()
 
     parts: list[str] = [
@@ -241,9 +277,9 @@ def build_questions_print_html(*, blank: TestBlank, qr_payload: str) -> str:
         "</style></head><body>",
         '<div class="page-header">',
         '<table style="width:100%;border-collapse:collapse"><tr>',
-        f'<td style="vertical-align:top;width:72%"><h1>{title_esc}</h1>',
+        f'<td style="vertical-align:top;padding-right:8px"><h1 style="font-size:{title_font_size}pt">{title_html}</h1>',
         '<p style="font-size:9pt;margin:6px 0 0 0;color:#444">Для ответов используйте отдельный бланк A6 с QR-кодом.</p></td>',
-        f'<td style="vertical-align:top;text-align:right;width:28%"><img src="{qr_uri}" width="76" height="76" alt="QR"/></td>',
+        f'<td style="vertical-align:top;text-align:right;width:84px"><img src="{qr_uri}" width="76" height="76" alt="QR"/></td>',
         "</tr></table></div>",
     ]
 
