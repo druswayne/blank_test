@@ -20,8 +20,33 @@ web_bp = Blueprint("web", __name__)
 MAX_TEST_QUESTIONS = 10
 
 SUBJECT_LABELS = {
-    "math": "Математика",
-    "russian": "Русский язык",
+    "belarusian_language": "Белорусский язык",
+    "belarusian_literature": "Белорусская литература",
+    "russian_language": "Русский язык",
+    "russian_literature": "Русская литература",
+    "mathematics": "Математика",
+    "algebra": "Алгебра",
+    "geometry": "Геометрия",
+    "informatics": "Информатика",
+    "human_and_world": "Человек и мир",
+    "world_history": "Всемирная история",
+    "history_of_belarus": "История Беларуси",
+    "social_studies": "Обществоведение",
+    "geography": "География",
+    "biology": "Биология",
+    "physics": "Физика",
+    "chemistry": "Химия",
+    "astronomy": "Астрономия",
+    "foreign_language": "Иностранный язык",
+    "fine_arts": "Изобразительное искусство",
+    "music": "Музыка",
+    "labor_training": "Трудовое обучение",
+    "arts_omhk": "Искусство (Отечественная и мировая художественная культура)",
+    "drafting": "Черчение",
+    "physical_education_health": "Физическая культура и здоровье",
+    "life_safety_basics_obzh": "Основы безопасности жизнедеятельности (ОБЖ)",
+    "preconscription_training": "Допризывная подготовка",
+    "medical_training": "Медицинская подготовка",
 }
 
 
