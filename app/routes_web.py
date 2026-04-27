@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required, login_user, logout_user
@@ -22,6 +23,14 @@ SUBJECT_LABELS = {
     "math": "Математика",
     "russian": "Русский язык",
 }
+
+
+def _safe_download_title(title: str | None, fallback: str = "Тест") -> str:
+    raw = (title or "").strip() or fallback
+    # Для имени файла убираем запрещённые в Windows символы.
+    cleaned = re.sub(r'[\\/:*?"<>|]+', " ", raw)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .")
+    return cleaned or fallback
 
 
 def _meta_from_form() -> tuple[str | None, bool, int | None, str | None]:
@@ -674,10 +683,11 @@ def blank_pdf_questions(blank_uuid: str):
         abort(404)
     _ensure_both_pdfs(blank)
     pdf_path = Path(current_app.config["PDF_DIR"]) / f"{blank.uuid}_questions.pdf"
+    title = _safe_download_title(blank.title)
     return send_file(
         str(pdf_path),
         as_attachment=True,
-        download_name=f"blank_{blank.uuid}_voprosy_a4.pdf",
+        download_name=f"{title}.pdf",
         mimetype="application/pdf",
     )
 
@@ -690,10 +700,11 @@ def blank_pdf_answers(blank_uuid: str):
         abort(404)
     _ensure_both_pdfs(blank)
     pdf_path = Path(current_app.config["PDF_DIR"]) / f"{blank.uuid}_answers.pdf"
+    title = _safe_download_title(blank.title)
     return send_file(
         str(pdf_path),
         as_attachment=True,
-        download_name=f"blank_{blank.uuid}_otvety_a6.pdf",
+        download_name=f"бланк ответа {title}.pdf",
         mimetype="application/pdf",
     )
 
