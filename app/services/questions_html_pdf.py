@@ -86,7 +86,7 @@ _QUILL_PRINT_CSS = """
 html, body { margin: 0; padding: 0; }
 body {
   font-size: 11pt;
-  line-height: 1.45;
+  line-height: 1;
   color: #111;
 }
 .page-header { margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 8px; }
@@ -100,7 +100,7 @@ body {
 }
 .ql-editor { box-sizing: border-box; outline: none; }
 .ql-editor p, .ql-editor ol, .ql-editor ul, .ql-editor pre, .ql-editor blockquote,
-.ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor h4, .ql-editor h5, .ql-editor h6 { margin: 0 0 6px 0; }
+.ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor h4, .ql-editor h5, .ql-editor h6 { margin: 0 0 4px 0; }
 .ql-editor h1 { font-size: 1.8em; font-weight: bold; }
 .ql-editor h2 { font-size: 1.6em; font-weight: bold; }
 .ql-editor h3 { font-size: 1.4em; font-weight: bold; }
@@ -260,7 +260,7 @@ def build_questions_print_html(*, blank: TestBlank, qr_payload: str) -> str:
             ("C", q.option_c),
             ("D", q.option_d),
         ):
-            parts.append('<table style="width:100%;border-collapse:collapse;margin-top:6px"><tr>')
+            parts.append('<table style="width:100%;border-collapse:collapse;margin-top:4px"><tr>')
             parts.append(f'<td style="vertical-align:top;width:32px;font-weight:bold">{letter})</td>')
             parts.append('<td style="vertical-align:top">')
             parts.append(f'<div class="ql-editor ql-snow option-line">{_pdf_option_html(html)}</div>')
