@@ -295,17 +295,82 @@ def tests_mine():
 def tests_search():
     q = request.args.get("q", "").strip()
     subject_keys = [s for s in request.args.getlist("subject") if s in SUBJECT_LABELS]
+    grade_raw = (request.args.get("grade") or "").strip()
+    qc_min_raw = (request.args.get("qc_min") or "").strip()
+    qc_max_raw = (request.args.get("qc_max") or "").strip()
+    rating_min_raw = (request.args.get("rating_min") or "").strip()
     page_raw = (request.args.get("page") or "1").strip()
+
+    grade_val: int | None = None
+    if grade_raw:
+        try:
+            g = int(grade_raw)
+            if 1 <= g <= 11:
+                grade_val = g
+        except Exception:
+            grade_val = None
+
+    qc_min: int | None = None
+    if qc_min_raw:
+        try:
+            qmn = int(qc_min_raw)
+            if 1 <= qmn <= MAX_TEST_QUESTIONS:
+                qc_min = qmn
+        except Exception:
+            qc_min = None
+
+    qc_max: int | None = None
+    if qc_max_raw:
+        try:
+            qmx = int(qc_max_raw)
+            if 1 <= qmx <= MAX_TEST_QUESTIONS:
+                qc_max = qmx
+        except Exception:
+            qc_max = None
+
+    if qc_min is not None and qc_max is not None and qc_min > qc_max:
+        qc_min, qc_max = qc_max, qc_min
+
+    rating_min: int | None = None
+    if rating_min_raw:
+        try:
+            rmn = int(rating_min_raw)
+            if 1 <= rmn <= 5:
+                rating_min = rmn
+        except Exception:
+            rating_min = None
+
     try:
         page = max(1, int(page_raw))
     except Exception:
         page = 1
     per_page = 12
-    query = TestBlank.query.filter(TestBlank.is_public.is_(True))
+
+    rating_subq = (
+        db.session.query(
+            TestBlankRating.blank_id.label("blank_id"),
+            func.avg(TestBlankRating.score).label("avg_score"),
+        )
+        .group_by(TestBlankRating.blank_id)
+        .subquery()
+    )
+
+    query = (
+        TestBlank.query.outerjoin(rating_subq, TestBlank.id == rating_subq.c.blank_id)
+        .filter(TestBlank.is_public.is_(True))
+    )
     if q:
         query = query.filter(TestBlank.title.ilike(f"%{q}%"))
     if subject_keys:
         query = query.filter(TestBlank.subject.in_(subject_keys))
+    if grade_val is not None:
+        query = query.filter(TestBlank.grade == grade_val)
+    if qc_min is not None:
+        query = query.filter(TestBlank.question_count >= qc_min)
+    if qc_max is not None:
+        query = query.filter(TestBlank.question_count <= qc_max)
+    if rating_min is not None:
+        query = query.filter(func.coalesce(rating_subq.c.avg_score, 0.0) >= rating_min)
     query = query.order_by(TestBlank.created_at.desc())
     total = query.count()
     pages = (total + per_page - 1) // per_page if total else 0
@@ -318,11 +383,22 @@ def tests_search():
         items=items,
         q=q,
         subject_keys=subject_keys,
+        grade=grade_val,
+        qc_min=qc_min,
+        qc_max=qc_max,
+        rating_min=rating_min,
         subject_labels=SUBJECT_LABELS,
         page=page,
         pages=pages,
         total=total,
-        query_args={"q": q, "subject": subject_keys},
+        query_args={
+            "q": q,
+            "subject": subject_keys,
+            "grade": str(grade_val) if grade_val is not None else "",
+            "qc_min": str(qc_min) if qc_min is not None else "",
+            "qc_max": str(qc_max) if qc_max is not None else "",
+            "rating_min": str(rating_min) if rating_min is not None else "",
+        },
         rating_stats=rating_stats,
         my_ratings=my_ratings,
         return_to=request.full_path.rstrip("?"),

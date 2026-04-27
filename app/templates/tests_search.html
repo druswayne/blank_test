@@ -5,6 +5,25 @@
     .tests-search-page .muted-note { color:#64748b; margin-top:6px; }
     .tests-search-page .back-link-wrap { margin-top:12px; }
     .tests-search-page .search-form { margin-top:16px; }
+    .tests-search-page .advanced-search {
+      margin-top: 14px;
+      border:1px solid #e2e8f0;
+      border-radius:10px;
+      padding:10px 12px;
+      background:#f8fafc;
+      color:#000;
+    }
+    .tests-search-page .advanced-search * { color:#000; }
+    .tests-search-page .advanced-search summary { cursor:pointer; font-weight:600; color:#000; }
+    .tests-search-page .advanced-search select {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #000;
+    }
+    .tests-search-page .advanced-grid { margin-top:10px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .tests-search-page .advanced-col-full { grid-column:1 / -1; }
+    .tests-search-page .range-row { display:flex; gap:8px; align-items:center; }
+    .tests-search-page .range-row select { width:auto; min-width:90px; }
     .tests-search-page .subject-list { display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
     .tests-search-page .subject-item { font-weight:500; }
     .tests-search-page .search-actions { margin-top:14px; }
@@ -111,6 +130,7 @@
       .tests-search-page h2 { margin-bottom: 4px; }
       .tests-search-page .box { padding: 12px; }
       .tests-search-page .subject-list { gap: 8px 12px; }
+      .tests-search-page .advanced-grid { grid-template-columns: 1fr; }
       .tests-search-page .table-wrap { margin-top: 12px; }
       .tests-search-page .data { min-width: 760px; }
       .tests-search-page .action-buttons { flex-direction: column; align-items: stretch; }
@@ -145,18 +165,65 @@
     <label>Название (часть текста)</label>
     <input type="text" name="q" value="{{ q }}" placeholder="Например, контрольная" />
 
-    <label style="margin-top:14px;">Предмет</label>
-    <div class="subject-list">
-      {% for key, label in subject_labels.items() %}
-        <label class="subject-item">
-          <input type="checkbox" name="subject" value="{{ key }}" {% if key in subject_keys %}checked{% endif %} />
-          {{ label }}
-        </label>
-      {% endfor %}
-    </div>
+    <details class="advanced-search" {% if subject_keys or grade or qc_min or qc_max or rating_min %}open{% endif %}>
+      <summary>Расширенный поиск</summary>
+      <div class="advanced-grid">
+        <div class="advanced-col-full">
+          <label style="margin-top:2px;">Предмет</label>
+          <div class="subject-list">
+            {% for key, label in subject_labels.items() %}
+              <label class="subject-item">
+                <input type="checkbox" name="subject" value="{{ key }}" {% if key in subject_keys %}checked{% endif %} />
+                {{ label }}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div>
+          <label for="grade">Класс</label>
+          <select id="grade" name="grade">
+            <option value="">— любой —</option>
+            {% for g in range(1, 12) %}
+              <option value="{{ g }}" {% if grade == g %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label>Количество вопросов</label>
+          <div class="range-row">
+            <select name="qc_min" aria-label="Минимум вопросов">
+              <option value="">От</option>
+              {% for c in range(1, 11) %}
+                <option value="{{ c }}" {% if qc_min == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+            <span>—</span>
+            <select name="qc_max" aria-label="Максимум вопросов">
+              <option value="">До</option>
+              {% for c in range(1, 11) %}
+                <option value="{{ c }}" {% if qc_max == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="rating_min">Рейтинг (минимум)</label>
+          <select id="rating_min" name="rating_min">
+            <option value="">— любой —</option>
+            {% for r in range(1, 6) %}
+              <option value="{{ r }}" {% if rating_min == r %}selected{% endif %}>от {{ r }}★</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </details>
 
     <div class="search-actions">
       <button class="btn" type="submit">Искать</button>
+      <a class="btn secondary" href="{{ url_for('web.tests_search') }}" style="margin-left:8px;">Сбросить</a>
     </div>
   </form>
 
@@ -223,11 +290,11 @@
     {% if pages > 1 %}
       <div class="pager">
         {% if page > 1 %}
-          <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_search', q=q, subject=subject_keys, page=page-1) }}">← Назад</a>
+          <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_search', q=q, subject=subject_keys, grade=grade if grade else '', qc_min=qc_min if qc_min else '', qc_max=qc_max if qc_max else '', rating_min=rating_min if rating_min else '', page=page-1) }}">← Назад</a>
         {% endif %}
         <span class="pager-text">Страница {{ page }} из {{ pages }}</span>
         {% if page < pages %}
-          <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_search', q=q, subject=subject_keys, page=page+1) }}">Вперёд →</a>
+          <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_search', q=q, subject=subject_keys, grade=grade if grade else '', qc_min=qc_min if qc_min else '', qc_max=qc_max if qc_max else '', rating_min=rating_min if rating_min else '', page=page+1) }}">Вперёд →</a>
         {% endif %}
       </div>
     {% endif %}
