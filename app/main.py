@@ -13,7 +13,8 @@ from .routes_api import api_bp
 def create_app() -> Flask:
     load_dotenv()
 
-    app = Flask(__name__)
+    static_dir = Path(__file__).resolve().parent.parent / "static"
+    app = Flask(__name__, static_folder=str(static_dir), static_url_path="/static")
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-change-me")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
         "DATABASE_URL", f"sqlite:///{Path(__file__).resolve().parent.parent / 'data' / 'app.db'}"

@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 import numpy as np
 import cv2
+from sqlalchemy import text
 
 from .models import TestBlank, TestQuestion, TestQuestionStats, db
 from .services.qr_service import verify_qr_payload
@@ -24,9 +25,6 @@ def _accumulate_question_stats(blank: TestBlank, verify_payload: dict) -> None:
     )
     q_by_num = {int(q.question_number): q for q in questions}
 
-    stats_rows = TestQuestionStats.query.filter_by(blank_id=blank.id).all()
-    stats_by_qid = {int(s.question_id): s for s in stats_rows}
-
     for row in results:
         try:
             qn = int(row.get("question_number"))
@@ -35,25 +33,52 @@ def _accumulate_question_stats(blank: TestBlank, verify_payload: dict) -> None:
         q = q_by_num.get(qn)
         if not q:
             continue
-        s = stats_by_qid.get(int(q.id))
-        if s is None:
-            s = TestQuestionStats(blank_id=blank.id, question_id=q.id)
-            db.session.add(s)
-            stats_by_qid[int(q.id)] = s
-
-        s.attempts_total = int(s.attempts_total or 0) + 1
-        if bool(row.get("is_correct")):
-            s.correct_total = int(s.correct_total or 0) + 1
 
         selected = (row.get("selected") or "").strip().upper()
-        if selected == "A":
-            s.option_a_total = int(s.option_a_total or 0) + 1
-        elif selected == "B":
-            s.option_b_total = int(s.option_b_total or 0) + 1
-        elif selected == "C":
-            s.option_c_total = int(s.option_c_total or 0) + 1
-        elif selected == "D":
-            s.option_d_total = int(s.option_d_total or 0) + 1
+        inc_correct = 1 if bool(row.get("is_correct")) else 0
+        inc_a = 1 if selected == "A" else 0
+        inc_b = 1 if selected == "B" else 0
+        inc_c = 1 if selected == "C" else 0
+        inc_d = 1 if selected == "D" else 0
+
+        # Защита от гонок: сначала гарантируем наличие строки статистики, затем
+        # увеличиваем счетчики атомарно на стороне БД (без read-modify-write в Python).
+        db.session.execute(
+            text(
+                """
+                INSERT INTO test_question_stats
+                    (blank_id, question_id, attempts_total, correct_total, option_a_total, option_b_total, option_c_total, option_d_total)
+                VALUES
+                    (:blank_id, :question_id, 0, 0, 0, 0, 0, 0)
+                ON CONFLICT(question_id) DO NOTHING
+                """
+            ),
+            {"blank_id": blank.id, "question_id": q.id},
+        )
+        db.session.execute(
+            text(
+                """
+                UPDATE test_question_stats
+                SET
+                    attempts_total = attempts_total + :inc_attempts,
+                    correct_total = correct_total + :inc_correct,
+                    option_a_total = option_a_total + :inc_a,
+                    option_b_total = option_b_total + :inc_b,
+                    option_c_total = option_c_total + :inc_c,
+                    option_d_total = option_d_total + :inc_d
+                WHERE question_id = :question_id
+                """
+            ),
+            {
+                "question_id": q.id,
+                "inc_attempts": 1,
+                "inc_correct": inc_correct,
+                "inc_a": inc_a,
+                "inc_b": inc_b,
+                "inc_c": inc_c,
+                "inc_d": inc_d,
+            },
+        )
 
     db.session.commit()
 
