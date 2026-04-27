@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 import re
 from html import escape
 from io import BytesIO
@@ -18,6 +19,8 @@ from xhtml2pdf import pisa
 
 from ..models import TestBlank
 from .qr_service import make_qr_payload
+
+_log = logging.getLogger(__name__)
 
 
 def _find_unicode_font_path() -> Path | None:
@@ -89,6 +92,12 @@ body {
 .page-header { margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 8px; }
 .page-header h1 { font-size: 17pt; margin: 0 0 4px 0; font-weight: bold; }
 .question-block { border: 1px solid #333; padding: 8px 10px; margin: 10px 0; page-break-inside: avoid; }
+/* Одна внешняя рамка на вопрос: у xhtml2pdf таблицы иначе дают границы, чем в Chromium */
+.question-block table, .question-block td, .question-block th {
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+}
 .ql-editor { box-sizing: border-box; outline: none; }
 .ql-editor p, .ql-editor ol, .ql-editor ul, .ql-editor pre, .ql-editor blockquote,
 .ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor h4, .ql-editor h5, .ql-editor h6 { margin: 0 0 6px 0; }
@@ -319,7 +328,11 @@ def generate_questions_pdf_html(
 
     try:
         _write_pdf_playwright(html, pdf_path)
-    except Exception:
+    except Exception as exc:
+        _log.warning(
+            "PDF вопросов: Playwright недоступен, используется xhtml2pdf (вёрстка может отличаться от Chromium): %s",
+            exc,
+        )
         _write_pdf_pisa(html, pdf_path)
 
     return str(pdf_path)

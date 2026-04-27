@@ -6,6 +6,10 @@
     <p class="muted" style="margin-top:8px;">Быстрый доступ ко всем инструментам: от создания до анализа результатов.</p>
   </section>
 
+  <div style="margin-top:12px;">
+    <a href="{{ url_for('web.dashboard') }}">← На главную</a>
+  </div>
+
   <div class="tile-grid">
     <a href="{{ url_for('web.tests_new') }}" class="tile">
       <div class="tile-title">Создать тест</div>
@@ -19,9 +23,5 @@
       <div class="tile-title">Поиск тестов</div>
       <div class="tile-desc">Тесты с открытым доступом по названию и предмету</div>
     </a>
-  </div>
-
-  <div style="margin-top:22px;">
-    <a href="{{ url_for('web.dashboard') }}">← На главную</a>
   </div>
 {% endblock %}

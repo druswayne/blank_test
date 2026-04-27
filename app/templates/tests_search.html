@@ -13,6 +13,16 @@
     .tests-search-page .actions-cell { min-width:300px; }
     .tests-search-page .rating-cell { min-width:260px; }
     .tests-search-page .action-buttons { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+    .tests-search-page .action-buttons .btn,
+    .tests-search-page .action-buttons form .btn {
+      width: 220px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.25;
+      font-family: inherit;
+      padding: 6px 10px;
+    }
     .tests-search-page .btn-download {
       position: relative;
       display: inline-flex;
@@ -21,9 +31,9 @@
       background: #16a34a;
       border-color: #16a34a;
       color: #fff;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.2px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
       padding-right: 34px;
       overflow: visible;
     }
@@ -46,7 +56,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1;
       font-weight: 900;
       border: 2px solid #16a34a;
@@ -59,8 +69,6 @@
       text-align: center;
     }
     .tests-search-page .copy-form { margin:0; }
-    .tests-search-page .action-buttons .btn,
-    .tests-search-page .action-buttons form .btn { width: 220px; text-align: center; }
     .tests-search-page .rating-info { font-size:13px; color:#475569; margin-bottom:6px; }
     .tests-search-page .my-rating { color:#16a34a; font-size:13px; }
     .tests-search-page .rating-form { display:flex; gap:4px; flex-wrap:wrap; }
@@ -175,13 +183,13 @@
             <td>{% if t.subject %}{{ subject_labels.get(t.subject, t.subject) }}{% else %}—{% endif %}</td>
             <td>
               <div class="action-buttons">
-                <a class="btn js-preview-open" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_preview', blank_uuid=t.uuid) }}" data-preview-url="{{ url_for('web.tests_preview', blank_uuid=t.uuid) }}">Предпросмотр</a>
-                <a class="btn btn-download" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.blank_pdf_questions', blank_uuid=t.uuid) }}"><span>Тест</span><span class="download-icon">↓</span></a>
-                <a class="btn btn-download nowrap" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.blank_pdf_answers', blank_uuid=t.uuid) }}"><span>Бланк ответов</span><span class="download-icon">↓</span></a>
+                <a class="btn js-preview-open" href="{{ url_for('web.tests_preview', blank_uuid=t.uuid) }}" data-preview-url="{{ url_for('web.tests_preview', blank_uuid=t.uuid) }}">Предпросмотр</a>
+                <a class="btn btn-download" href="{{ url_for('web.blank_pdf_questions', blank_uuid=t.uuid) }}"><span>Тест</span><span class="download-icon">↓</span></a>
+                <a class="btn btn-download nowrap" href="{{ url_for('web.blank_pdf_answers', blank_uuid=t.uuid) }}"><span>Бланк ответов</span><span class="download-icon">↓</span></a>
                 {% if t.owner_id != current_user.id %}
                   <form method="post" action="{{ url_for('web.tests_copy', blank_uuid=t.uuid) }}" class="copy-form">
                     <input type="hidden" name="next" value="{{ return_to }}" />
-                    <button class="btn secondary" type="submit" style="padding:6px 10px; font-size:13px;">Копировать к себе</button>
+                    <button class="btn secondary" type="submit">Копировать к себе</button>
                   </form>
                 {% endif %}
               </div>
