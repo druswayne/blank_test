@@ -546,12 +546,14 @@ def verify_blank_image(
     # Пороги по умолчанию (для старого шаблона).
     min_fill_ratio = 0.08
     ambiguous_delta = 0.03
+    row_contrast_min = 0.020
 
     # Для A6 с горизонтальными вариантами (layout v3) используем более чувствительные пороги
     # и относительную проверку на фоне остальных вариантов в строке.
     if layout_version == 3:
         min_fill_ratio = 0.028
         ambiguous_delta = 0.010
+        row_contrast_min = 0.010
 
     for qi in range(blank.question_count):
         if qi < len(anchors):
@@ -603,23 +605,26 @@ def verify_blank_image(
         ambiguous = False
         mean_other = (sum(scores) - top_score) / 3.0
         relative_margin = top_score - mean_other
-        if top_score >= min_fill_ratio:
-            near_top_count = sum(1 for s in scores if (top_score - s) < ambiguous_delta)
+        marked_indices = [i for i, s in enumerate(scores) if s >= min_fill_ratio]
 
-            # Если 3+ клеток почти одинаково "тёмные", считаем ответ неверным.
-            if near_top_count > 2:
-                ambiguous = True
-                selected_index = None
-            elif layout_version == 3:
+        # Если обнаружено больше одной отметки в вопросе — ответ не засчитываем.
+        if len(marked_indices) > 1:
+            ambiguous = True
+            selected_index = None
+        elif top_score >= min_fill_ratio:
+            if layout_version == 3:
                 # На A6 считаем вариант выбранным, если он заметно "чернее" остальных.
-                if relative_margin >= 0.008:
+                if relative_margin >= row_contrast_min:
                     if (top_score - second_score) < ambiguous_delta:
                         ambiguous = True
                     selected_index = top_idx
             else:
-                if (top_score - second_score) < ambiguous_delta:
-                    ambiguous = True
-                selected_index = top_idx
+                # Для старого шаблона тоже требуем отрыв кандидата от "фона" строки,
+                # иначе на пустых/зашумленных клетках возможны ложные срабатывания.
+                if relative_margin >= row_contrast_min:
+                    if (top_score - second_score) < ambiguous_delta:
+                        ambiguous = True
+                    selected_index = top_idx
 
         correct_index = blank.questions[qi].correct_index  # вопросы в порядке qi
         is_correct = selected_index is not None and (selected_index == correct_index) and (not ambiguous)
