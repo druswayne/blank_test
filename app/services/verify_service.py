@@ -603,6 +603,7 @@ def verify_blank_image(
         ambiguous = False
         mean_other = (sum(scores) - top_score) / 3.0
         relative_margin = top_score - mean_other
+
         if top_score >= min_fill_ratio:
             if layout_version == 3:
                 # На A6 считаем вариант выбранным, если он заметно "чернее" остальных.
