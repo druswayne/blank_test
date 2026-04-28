@@ -39,6 +39,8 @@
       background: rgba(8, 12, 22, 0.7);
       z-index: 1200;
       padding: 18px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     #dashboard-help-modal .panel {
       max-width: 720px;
@@ -49,6 +51,8 @@
       border-radius: 16px;
       box-shadow: 0 24px 50px rgba(4, 10, 30, 0.55);
       padding: 0;
+      max-height: calc(100dvh - 36px);
+      overflow: hidden;
     }
     #dashboard-help-modal .hero {
       padding: 18px 18px 14px;
@@ -66,6 +70,8 @@
     }
     #dashboard-help-modal .body {
       padding: 16px 18px 14px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     #dashboard-help-modal .steps {
       display: grid;
@@ -134,6 +140,25 @@
       margin-top: 14px;
       display: flex;
       justify-content: flex-end;
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(12, 23, 45, 0.2), rgba(12, 23, 45, 0.92));
+      padding-top: 8px;
+    }
+    @media (max-width: 720px) {
+      #dashboard-help-modal {
+        padding: 10px;
+      }
+      #dashboard-help-modal .panel {
+        margin: 0;
+        max-height: calc(100dvh - 20px);
+      }
+      #dashboard-help-modal .hero {
+        padding: 14px 14px 12px;
+      }
+      #dashboard-help-modal .body {
+        padding: 12px 14px 12px;
+      }
     }
   </style>
 {% endblock %}
