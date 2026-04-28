@@ -603,7 +603,13 @@ def verify_blank_image(
         ambiguous = False
         mean_other = (sum(scores) - top_score) / 3.0
         relative_margin = top_score - mean_other
-        if top_score >= min_fill_ratio:
+        marked_count = sum(1 for s in scores if s >= min_fill_ratio)
+
+        # Если отмечено 3+ клеток, считаем ответ неверным.
+        if marked_count > 2:
+            ambiguous = True
+            selected_index = None
+        elif top_score >= min_fill_ratio:
             if layout_version == 3:
                 # На A6 считаем вариант выбранным, если он заметно "чернее" остальных.
                 if relative_margin >= 0.008:
