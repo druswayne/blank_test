@@ -144,7 +144,7 @@ def register():
         return redirect(url_for("web.dashboard"))
 
     if request.method == "POST":
-        login = request.form.get("login", "").strip()
+        login = request.form.get("login", "").strip().lower()
         password = request.form.get("password", "").strip()
         password2 = request.form.get("password2", "").strip()
 
@@ -155,7 +155,7 @@ def register():
             flash("Пароли не совпадают", "error")
             return redirect(url_for("web.register"))
 
-        if User.query.filter_by(login=login).first():
+        if User.query.filter(func.lower(User.login) == login).first():
             flash("Логин уже занят", "error")
             return redirect(url_for("web.register"))
 
@@ -174,10 +174,10 @@ def login():
         return redirect(url_for("web.dashboard"))
 
     if request.method == "POST":
-        login_val = request.form.get("login", "").strip()
+        login_val = request.form.get("login", "").strip().lower()
         password = request.form.get("password", "").strip()
 
-        user = User.query.filter_by(login=login_val).first()
+        user = User.query.filter(func.lower(User.login) == login_val).first()
         if not user or not user.check_password(password):
             flash("Неверный логин или пароль", "error")
             return redirect(url_for("web.login"))
@@ -634,6 +634,7 @@ def tests_stats(blank_uuid: str):
     blank = TestBlank.query.filter_by(uuid=blank_uuid, owner_id=current_user.id).first()
     if not blank:
         abort(404)
+    sort = (request.args.get("sort") or "question_asc").strip()
 
     qs = sorted(blank.questions, key=lambda x: x.question_number)
     stats_rows = TestQuestionStats.query.filter_by(blank_id=blank.id).all()
@@ -677,6 +678,16 @@ def tests_stats(blank_uuid: str):
     total_correct = sum(r["correct"] for r in rows)
     overall_pct = (total_correct * 100.0 / total_attempts) if total_attempts > 0 else 0.0
 
+    if sort == "question_desc":
+        rows.sort(key=lambda r: int(r["question_number"]), reverse=True)
+    elif sort == "correct_pct_asc":
+        rows.sort(key=lambda r: (float(r["correct_pct"]), int(r["question_number"])))
+    elif sort == "correct_pct_desc":
+        rows.sort(key=lambda r: (float(r["correct_pct"]), int(r["question_number"])), reverse=True)
+    else:
+        sort = "question_asc"
+        rows.sort(key=lambda r: int(r["question_number"]))
+
     return render_template(
         "tests_stats.html",
         blank=blank,
@@ -684,7 +695,21 @@ def tests_stats(blank_uuid: str):
         total_attempts=total_attempts,
         total_correct=total_correct,
         overall_pct=overall_pct,
+        sort=sort,
     )
+
+
+@web_bp.route("/tests/<blank_uuid>/stats/reset", methods=["POST"])
+@login_required
+def tests_stats_reset(blank_uuid: str):
+    blank = TestBlank.query.filter_by(uuid=blank_uuid, owner_id=current_user.id).first()
+    if not blank:
+        abort(404)
+
+    TestQuestionStats.query.filter_by(blank_id=blank.id).delete(synchronize_session=False)
+    db.session.commit()
+    flash("Статистика теста обнулена.", "success")
+    return redirect(url_for("web.tests_stats", blank_uuid=blank.uuid))
 
 
 @web_bp.route("/blanks/new", methods=["GET", "POST"])

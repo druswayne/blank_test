@@ -1,15 +1,260 @@
 {% extends "base.html" %}
 {% block title %}Личный кабинет{% endblock %}
+{% block head %}
+  <style>
+    .dashboard-help-wrap { margin-top: 18px; }
+    .dashboard-help-tile-wrap {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+      overflow: visible;
+    }
+    .dashboard-help-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      transform: translate(35%, -35%);
+      width: 45px;
+      height: 45px;
+      border-radius: 999px;
+      border: 3px solid rgba(172, 191, 255, 0.9);
+      background: linear-gradient(135deg, #1f315f, #162446);
+      color: #eef3ff;
+      font-weight: 800;
+      font-size: 23px;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 5;
+      box-shadow: 0 14px 30px rgba(4, 10, 30, 0.5);
+    }
+    .dashboard-help-btn:hover {
+      filter: brightness(1.12);
+      transform: translate(35%, -35%) scale(1.03);
+    }
+
+    #dashboard-help-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 12, 22, 0.7);
+      z-index: 1200;
+      padding: 18px;
+    }
+    #dashboard-help-modal .panel {
+      max-width: 720px;
+      margin: 7vh auto 0;
+      background: linear-gradient(180deg, #111e38 0%, #0c172d 100%);
+      color: #e5ecff;
+      border: 1px solid rgba(172, 191, 255, 0.3);
+      border-radius: 16px;
+      box-shadow: 0 24px 50px rgba(4, 10, 30, 0.55);
+      padding: 0;
+    }
+    #dashboard-help-modal .hero {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid rgba(172, 191, 255, 0.2);
+      background: radial-gradient(450px 180px at 0% 0%, rgba(91, 139, 255, 0.28), transparent 70%);
+    }
+    #dashboard-help-modal h3 {
+      margin: 0;
+      font-size: 24px;
+    }
+    #dashboard-help-modal .hero-sub {
+      margin-top: 8px;
+      color: #c8d8ff;
+      font-size: 14px;
+    }
+    #dashboard-help-modal .body {
+      padding: 16px 18px 14px;
+    }
+    #dashboard-help-modal .steps {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    #dashboard-help-modal .step {
+      border: 1px solid rgba(172, 191, 255, 0.24);
+      border-radius: 12px;
+      background: rgba(17, 26, 47, 0.72);
+      padding: 10px 12px;
+    }
+    #dashboard-help-modal .step-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: #eaf0ff;
+    }
+    #dashboard-help-modal .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      background: linear-gradient(135deg, #5b8bff, #7c5cff);
+      color: #fff;
+      flex: 0 0 auto;
+    }
+    #dashboard-help-modal .step-text {
+      margin-top: 6px;
+      color: #c8d8ff;
+      line-height: 1.45;
+    }
+    #dashboard-help-modal .rules {
+      margin-top: 12px;
+      border: 1px solid rgba(252, 211, 77, 0.35);
+      background: rgba(120, 93, 20, 0.16);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    #dashboard-help-modal .rules-title {
+      font-weight: 700;
+      color: #ffe7a3;
+      margin-bottom: 6px;
+    }
+    #dashboard-help-modal ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      line-height: 1.45;
+    }
+    #dashboard-help-modal ul li + li { margin-top: 6px; }
+    #dashboard-help-modal .rules li::before {
+      content: "• ";
+      color: #ffd76b;
+    }
+    #dashboard-help-modal .note {
+      margin-top: 12px;
+      color: #c3d4ff;
+      font-size: 14px;
+    }
+    #dashboard-help-modal .actions {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+    }
+  </style>
+{% endblock %}
 {% block content %}
   <section class="card reveal" style="padding:24px 24px; background:linear-gradient(130deg, rgba(35, 72, 154, 0.8), rgba(83, 54, 164, 0.72));">
     <h2 style="margin:0; font-size:clamp(28px,4vw,36px);">Личный кабинет</h2>
     <p style="margin:10px 0 0; color:#e3ebff; max-width:760px;">Управляйте тестами, проверкой бланков и аналитикой в одном месте — в обновленном интерфейсе это еще быстрее и удобнее.</p>
   </section>
 
-  <div class="tile-grid reveal reveal-delay-1">
-    <a href="{{ url_for('web.tests_hub') }}" class="tile">
-      <div class="tile-title">Центр тестов</div>
-      <div class="tile-desc">Создание, поиск, копирование, рейтинги, PDF и статистика по результатам сканирования.</div>
-    </a>
+  <div class="dashboard-help-wrap reveal reveal-delay-1">
+    <div class="tile-grid" style="margin-top:0;">
+      <div class="dashboard-help-tile-wrap">
+        <a href="{{ url_for('web.tests_hub') }}" class="tile">
+          <div class="tile-title">Центр тестов</div>
+          <div class="tile-desc">Создание, поиск, копирование, рейтинги, PDF и статистика по результатам сканирования.</div>
+        </a>
+        <button
+          id="dashboard-help-open"
+          class="dashboard-help-btn"
+          type="button"
+          aria-label="Открыть инструкцию"
+          title="Как начать работу"
+        >?</button>
+      </div>
+    </div>
   </div>
+
+  <div id="dashboard-help-modal" role="dialog" aria-modal="true" aria-labelledby="dashboard-help-title">
+    <div class="panel">
+      <div class="hero">
+        <h3 id="dashboard-help-title">Быстрый старт</h3>
+        <div class="hero-sub">Три шага, чтобы начать проводить тестирование уже сейчас.</div>
+      </div>
+      <div class="body">
+        <div class="steps">
+          <div class="step">
+            <div class="step-head"><span class="step-num">1</span>Подготовьте тест</div>
+            <div class="step-text">Создайте свой тест или найдите подходящий в списке готовых.</div>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-num">2</span>Распечатайте бланки</div>
+            <div class="step-text">Скачайте и распечатайте бланк с вопросами и бланк ответов.</div>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-num">3</span>Проведите тестирование</div>
+            <div class="step-text">Раздайте бланки учащимся и перед началом кратко объясните правила заполнения.</div>
+          </div>
+        </div>
+        <div class="rules">
+          <div class="rules-title">Важно перед началом</div>
+          <ul>
+            <li>Отмечать крестиком только один ответ на вопрос.</li>
+            <li>Лучше заполнять карандашом, чтобы можно было исправить.</li>
+            <li>Исправления и двойные отметки могут засчитываться как неверный ответ.</li>
+          </ul>
+        </div>
+        <div class="note">Подсказку можно снова открыть кнопкой «?» над блоком «Центр тестов».</div>
+        <div class="actions">
+          <button id="dashboard-help-close" type="button" class="btn">Начать работу</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var COOKIE_NAME = "dashboard_help_seen";
+      var modal = document.getElementById("dashboard-help-modal");
+      var openBtn = document.getElementById("dashboard-help-open");
+      var closeBtn = document.getElementById("dashboard-help-close");
+      if (!modal || !openBtn || !closeBtn) {
+        return;
+      }
+
+      function hasSeenHelp() {
+        return document.cookie.split(";").some(function (item) {
+          return item.trim().indexOf(COOKIE_NAME + "=1") === 0;
+        });
+      }
+
+      function markSeen() {
+        var maxAge = 60 * 60 * 24 * 365;
+        document.cookie = COOKIE_NAME + "=1; path=/; max-age=" + maxAge + "; SameSite=Lax";
+      }
+
+      function openModal() {
+        modal.style.display = "block";
+      }
+
+      function closeModal(markAsSeen) {
+        modal.style.display = "none";
+        if (markAsSeen) {
+          markSeen();
+        }
+      }
+
+      openBtn.addEventListener("click", function () {
+        openModal();
+      });
+
+      closeBtn.addEventListener("click", function () {
+        closeModal(true);
+      });
+
+      modal.addEventListener("click", function (e) {
+        if (e.target === modal) {
+          closeModal(true);
+        }
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && modal.style.display !== "none") {
+          closeModal(true);
+        }
+      });
+
+      if (!hasSeenHelp()) {
+        window.setTimeout(function () {
+          openModal();
+        }, 3000);
+      }
+    })();
+  </script>
 {% endblock %}

@@ -5,6 +5,15 @@
   <div style="margin-top:10px;">
     <a href="{{ url_for('web.tests_mine') }}">← К списку «Мои тесты»</a>
   </div>
+  <div style="margin-top:10px;">
+    <form
+      method="post"
+      action="{{ url_for('web.tests_stats_reset', blank_uuid=blank.uuid) }}"
+      onsubmit="return confirm('Обнулить всю статистику по этому тесту? Это действие нельзя отменить.');"
+    >
+      <button type="submit" class="btn danger">Обнулить статистику</button>
+    </form>
+  </div>
 
   <div class="box" style="margin-top:16px;">
     <div><strong>Всего попыток по вопросам:</strong> {{ total_attempts }}</div>
@@ -13,30 +22,117 @@
   </div>
 
   {% if rows %}
-    <table class="data" style="margin-top:16px;">
+    <table id="stats-table" class="data" style="margin-top:16px;">
       <thead>
         <tr>
-          <th>Вопрос</th>
-          <th>Правильность</th>
+          <th>
+            <button
+              type="button"
+              data-sort-key="question"
+              style="all:unset; cursor:pointer; color:inherit; font-weight:700;"
+            >
+              Вопрос <span data-arrow-for="question">↑</span>
+            </button>
+          </th>
+          <th>
+            <button
+              type="button"
+              data-sort-key="correct_pct"
+              style="all:unset; cursor:pointer; color:inherit; font-weight:700;"
+            >
+              Правильность <span data-arrow-for="correct_pct"></span>
+            </button>
+          </th>
           <th>A</th>
           <th>B</th>
           <th>C</th>
           <th>D</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="stats-table-body">
         {% for r in rows %}
-          <tr>
+          <tr data-question="{{ r.question_number }}" data-correct-pct="{{ '%.6f'|format(r.correct_pct) }}">
             <td>№{{ r.question_number }}</td>
-            <td>{{ r.correct }}/{{ r.attempts }} ({{ '%.1f'|format(r.correct_pct) }}%)</td>
-            <td>{{ r.options.A.count }}/{{ r.attempts }} ({{ '%.1f'|format(r.options.A.pct) }}%)</td>
-            <td>{{ r.options.B.count }}/{{ r.attempts }} ({{ '%.1f'|format(r.options.B.pct) }}%)</td>
-            <td>{{ r.options.C.count }}/{{ r.attempts }} ({{ '%.1f'|format(r.options.C.pct) }}%)</td>
-            <td>{{ r.options.D.count }}/{{ r.attempts }} ({{ '%.1f'|format(r.options.D.pct) }}%)</td>
+            <td>{{ '%.1f'|format(r.correct_pct) }}%</td>
+            <td>{{ '%.1f'|format(r.options.A.pct) }}%</td>
+            <td>{{ '%.1f'|format(r.options.B.pct) }}%</td>
+            <td>{{ '%.1f'|format(r.options.C.pct) }}%</td>
+            <td>{{ '%.1f'|format(r.options.D.pct) }}%</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
+    <script>
+      (function () {
+        var tableBody = document.getElementById("stats-table-body");
+        var controls = document.querySelectorAll("[data-sort-key]");
+        if (!tableBody || !controls.length) {
+          return;
+        }
+
+        var state = {
+          key: "question",
+          dir: "asc",
+        };
+
+        function getValue(row, key) {
+          if (key === "question") {
+            return Number(row.getAttribute("data-question") || "0");
+          }
+          if (key === "correct_pct") {
+            return Number(row.getAttribute("data-correct-pct") || "0");
+          }
+          return 0;
+        }
+
+        function updateArrows() {
+          var qArrow = document.querySelector('[data-arrow-for="question"]');
+          var cArrow = document.querySelector('[data-arrow-for="correct_pct"]');
+          if (qArrow) {
+            qArrow.textContent = state.key === "question" ? (state.dir === "asc" ? "↑" : "↓") : "";
+          }
+          if (cArrow) {
+            cArrow.textContent = state.key === "correct_pct" ? (state.dir === "asc" ? "↑" : "↓") : "";
+          }
+        }
+
+        function sortTable(key, dir) {
+          var rows = Array.prototype.slice.call(tableBody.querySelectorAll("tr"));
+          rows.sort(function (a, b) {
+            var av = getValue(a, key);
+            var bv = getValue(b, key);
+            if (av === bv) {
+              var aq = getValue(a, "question");
+              var bq = getValue(b, "question");
+              return aq - bq;
+            }
+            return dir === "asc" ? av - bv : bv - av;
+          });
+          rows.forEach(function (row) {
+            tableBody.appendChild(row);
+          });
+          updateArrows();
+        }
+
+        controls.forEach(function (control) {
+          control.addEventListener("click", function () {
+            var key = control.getAttribute("data-sort-key");
+            if (!key) {
+              return;
+            }
+            if (state.key === key) {
+              state.dir = state.dir === "asc" ? "desc" : "asc";
+            } else {
+              state.key = key;
+              state.dir = key === "correct_pct" ? "desc" : "asc";
+            }
+            sortTable(state.key, state.dir);
+          });
+        });
+
+        sortTable(state.key, state.dir);
+      })();
+    </script>
   {% else %}
     <div class="box" style="margin-top:16px; color:#64748b;">Пока нет данных сканирования для этого теста.</div>
   {% endif %}
