@@ -603,13 +603,7 @@ def verify_blank_image(
         ambiguous = False
         mean_other = (sum(scores) - top_score) / 3.0
         relative_margin = top_score - mean_other
-        marked_indices = [i for i, s in enumerate(scores) if s >= min_fill_ratio]
-
-        # Если отмечено более двух клеток в одном вопросе, считаем ответ неверным.
-        if len(marked_indices) > 2:
-            ambiguous = True
-            selected_index = None
-        elif top_score >= min_fill_ratio:
+        if top_score >= min_fill_ratio:
             if layout_version == 3:
                 # На A6 считаем вариант выбранным, если он заметно "чернее" остальных.
                 if relative_margin >= 0.008:
