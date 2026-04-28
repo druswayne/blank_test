@@ -44,15 +44,16 @@
     }
     #dashboard-help-modal .panel {
       max-width: 720px;
-      margin: 7vh auto 0;
+      margin: 4vh auto 0;
       background: linear-gradient(180deg, #111e38 0%, #0c172d 100%);
       color: #e5ecff;
       border: 1px solid rgba(172, 191, 255, 0.3);
       border-radius: 16px;
       box-shadow: 0 24px 50px rgba(4, 10, 30, 0.55);
       padding: 0;
-      max-height: calc(100dvh - 36px);
-      overflow: hidden;
+      max-height: calc(100vh - 36px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     #dashboard-help-modal .hero {
       padding: 18px 18px 14px;
@@ -70,8 +71,6 @@
     }
     #dashboard-help-modal .body {
       padding: 16px 18px 14px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
     }
     #dashboard-help-modal .steps {
       display: grid;
@@ -142,15 +141,15 @@
       justify-content: flex-end;
       position: sticky;
       bottom: 0;
-      background: linear-gradient(180deg, rgba(12, 23, 45, 0.2), rgba(12, 23, 45, 0.92));
-      padding-top: 8px;
+      padding-top: 10px;
+      background: linear-gradient(180deg, rgba(12, 23, 45, 0), rgba(12, 23, 45, 0.96) 32%);
     }
     @media (max-width: 720px) {
       #dashboard-help-modal {
         padding: 10px;
       }
       #dashboard-help-modal .panel {
-        margin: 0;
+        margin: 0 auto;
         max-height: calc(100dvh - 20px);
       }
       #dashboard-help-modal .hero {
@@ -246,10 +245,12 @@
 
       function openModal() {
         modal.style.display = "block";
+        document.body.style.overflow = "hidden";
       }
 
       function closeModal(markAsSeen) {
         modal.style.display = "none";
+        document.body.style.overflow = "";
         if (markAsSeen) {
           markSeen();
         }
