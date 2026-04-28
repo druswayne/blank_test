@@ -546,14 +546,12 @@ def verify_blank_image(
     # Пороги по умолчанию (для старого шаблона).
     min_fill_ratio = 0.08
     ambiguous_delta = 0.03
-    uniform_noise_delta = 0.015
 
     # Для A6 с горизонтальными вариантами (layout v3) используем более чувствительные пороги
     # и относительную проверку на фоне остальных вариантов в строке.
     if layout_version == 3:
         min_fill_ratio = 0.028
         ambiguous_delta = 0.010
-        uniform_noise_delta = 0.010
 
     for qi in range(blank.question_count):
         if qi < len(anchors):
@@ -597,31 +595,28 @@ def verify_blank_image(
         top_idx = int(np.argmax(scores))
         top_score = scores[top_idx]
 
-        # second max
-        sorted_scores = sorted([(s, i) for i, s in enumerate(scores)], reverse=True)
-        second_score = sorted_scores[1][0] if len(sorted_scores) > 1 else 0.0
-
         selected_index = None
         ambiguous = False
         mean_other = (sum(scores) - top_score) / 3.0
         relative_margin = top_score - mean_other
-        score_spread = max(scores) - min(scores)
-
-        # Если все клетки в вопросе почти одинаковые по плотности,
-        # считаем это равномерным шумом/тенью, а не выбранным ответом.
-        if top_score >= min_fill_ratio and score_spread <= uniform_noise_delta and relative_margin <= uniform_noise_delta:
-            selected_index = None
-        elif top_score >= min_fill_ratio:
+        if top_score >= min_fill_ratio:
+            near_top_indices = [
+                i for i, s in enumerate(scores) if s >= min_fill_ratio and (top_score - s) <= ambiguous_delta
+            ]
             if layout_version == 3:
                 # На A6 считаем вариант выбранным, если он заметно "чернее" остальных.
                 if relative_margin >= 0.008:
-                    if (top_score - second_score) < ambiguous_delta:
+                    if len(near_top_indices) > 1:
                         ambiguous = True
-                    selected_index = top_idx
+                        selected_index = None
+                    else:
+                        selected_index = top_idx
             else:
-                if (top_score - second_score) < ambiguous_delta:
+                if len(near_top_indices) > 1:
                     ambiguous = True
-                selected_index = top_idx
+                    selected_index = None
+                else:
+                    selected_index = top_idx
 
         correct_index = blank.questions[qi].correct_index  # вопросы в порядке qi
         is_correct = selected_index is not None and (selected_index == correct_index) and (not ambiguous)
