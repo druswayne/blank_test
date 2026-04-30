@@ -212,8 +212,23 @@ def _html_fragment_only_spacer(html: str) -> bool:
 
 
 def _parse_structured_from_line_pairs(pairs: list[tuple[str, str]], *, max_questions: int) -> list[dict]:
-    lines = [ln.rstrip() for ln, _ in pairs]
-    htmls = [h for _, h in pairs]
+    normalized_pairs: list[tuple[str, str]] = []
+    for ln, h in pairs:
+        ln_norm = (ln or "").rstrip()
+        if "\n" not in ln_norm:
+            normalized_pairs.append((ln_norm, h))
+            continue
+        # В редких случаях Quill может отдать один HTML-блок с текстом, содержащим \n.
+        # Для структурного разбора нам нужны отдельные логические строки.
+        split_lines = [part.rstrip() for part in ln_norm.splitlines()]
+        if not split_lines:
+            normalized_pairs.append(("", h))
+            continue
+        for part in split_lines:
+            normalized_pairs.append((part, f"<p>{escape(part)}</p>"))
+
+    lines = [ln for ln, _ in normalized_pairs]
+    htmls = [h for _, h in normalized_pairs]
     i = 0
     questions: list[dict] = []
 

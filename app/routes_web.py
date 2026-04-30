@@ -507,12 +507,31 @@ def rate_test(blank_uuid: str):
 @login_required
 def tests_new():
     if request.method == "POST":
+        form_title = (request.form.get("title") or "").strip()
+        form_is_public = (request.form.get("is_public") == "on")
+        form_grade_raw = (request.form.get("grade") or "").strip()
+        form_subject = (request.form.get("subject") or "").strip()
+        raw_body = request.form.get("test_body", "") or ""
+        form_grade = None
+        if form_grade_raw:
+            try:
+                form_grade = int(form_grade_raw)
+            except Exception:
+                form_grade = None
         try:
             title, is_public, grade, subject = _meta_from_form()
         except ValueError as e:
             flash(str(e), "error")
-            return redirect(url_for("web.tests_new"))
-        raw_body = request.form.get("test_body", "") or ""
+            return render_template(
+                "test_editor.html",
+                mode="create",
+                subject_labels=SUBJECT_LABELS,
+                body_text=raw_body,
+                form_title=form_title,
+                form_is_public=form_is_public,
+                form_grade=form_grade,
+                form_subject=form_subject,
+            )
         try:
             if looks_like_quill_html(raw_body):
                 parsed = parse_structured_quill_html(raw_body, max_questions=MAX_TEST_QUESTIONS)
@@ -521,7 +540,16 @@ def tests_new():
                 parsed = parse_structured_test_body(body, max_questions=MAX_TEST_QUESTIONS)
         except ValueError as e:
             flash(str(e), "error")
-            return redirect(url_for("web.tests_new"))
+            return render_template(
+                "test_editor.html",
+                mode="create",
+                subject_labels=SUBJECT_LABELS,
+                body_text=raw_body,
+                form_title=form_title,
+                form_is_public=form_is_public,
+                form_grade=form_grade,
+                form_subject=form_subject,
+            )
 
         blank = TestBlank(
             owner_id=current_user.id,
@@ -549,6 +577,10 @@ def tests_new():
         mode="create",
         subject_labels=SUBJECT_LABELS,
         body_text="",
+        form_title="",
+        form_is_public=False,
+        form_grade=None,
+        form_subject="",
     )
 
 
@@ -560,12 +592,32 @@ def tests_edit(blank_uuid: str):
         abort(404)
 
     if request.method == "POST":
+        form_title = (request.form.get("title") or "").strip()
+        form_is_public = (request.form.get("is_public") == "on")
+        form_grade_raw = (request.form.get("grade") or "").strip()
+        form_subject = (request.form.get("subject") or "").strip()
+        raw_body = request.form.get("test_body", "") or ""
+        form_grade = None
+        if form_grade_raw:
+            try:
+                form_grade = int(form_grade_raw)
+            except Exception:
+                form_grade = None
         try:
             title, is_public, grade, subject = _meta_from_form()
         except ValueError as e:
             flash(str(e), "error")
-            return redirect(url_for("web.tests_edit", blank_uuid=blank_uuid))
-        raw_body = request.form.get("test_body", "") or ""
+            return render_template(
+                "test_editor.html",
+                mode="edit",
+                blank=blank,
+                subject_labels=SUBJECT_LABELS,
+                body_text=raw_body,
+                form_title=form_title,
+                form_is_public=form_is_public,
+                form_grade=form_grade,
+                form_subject=form_subject,
+            )
         try:
             if looks_like_quill_html(raw_body):
                 parsed = parse_structured_quill_html(raw_body, max_questions=MAX_TEST_QUESTIONS)
@@ -574,7 +626,17 @@ def tests_edit(blank_uuid: str):
                 parsed = parse_structured_test_body(body, max_questions=MAX_TEST_QUESTIONS)
         except ValueError as e:
             flash(str(e), "error")
-            return redirect(url_for("web.tests_edit", blank_uuid=blank_uuid))
+            return render_template(
+                "test_editor.html",
+                mode="edit",
+                blank=blank,
+                subject_labels=SUBJECT_LABELS,
+                body_text=raw_body,
+                form_title=form_title,
+                form_is_public=form_is_public,
+                form_grade=form_grade,
+                form_subject=form_subject,
+            )
 
         blank.title = title
         blank.is_public = is_public
@@ -597,6 +659,10 @@ def tests_edit(blank_uuid: str):
         blank=blank,
         subject_labels=SUBJECT_LABELS,
         body_text=blank_to_editor_html(blank),
+        form_title=blank.title or "",
+        form_is_public=bool(blank.is_public),
+        form_grade=blank.grade,
+        form_subject=blank.subject or "",
     )
 
 
