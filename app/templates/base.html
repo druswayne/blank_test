@@ -171,6 +171,33 @@
       .tile-title { font-size: 1.08rem; font-weight: 700; }
       .tile-desc { margin-top: 8px; color: var(--muted); font-size: .93rem; line-height: 1.35; }
       .muted { color: var(--muted); }
+      .cookie-banner {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1400;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(172, 191, 255, 0.35);
+        background: rgba(11, 18, 35, 0.96);
+        box-shadow: var(--shadow);
+      }
+      .cookie-banner-text {
+        margin: 0;
+        color: #dbe6ff;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .cookie-banner-actions {
+        display: flex;
+        gap: 8px;
+        flex: 0 0 auto;
+      }
       @keyframes fadeUp {
         from { opacity: 0; transform: translateY(12px); }
         to { opacity: 1; transform: translateY(0); }
@@ -234,6 +261,16 @@
         .nav-actions form .btn {
           width: 100%;
         }
+        .cookie-banner {
+          flex-direction: column;
+          align-items: stretch;
+          left: 10px;
+          right: 10px;
+          bottom: 10px;
+        }
+        .cookie-banner-actions .btn {
+          width: 100%;
+        }
       }
     </style>
   </head>
@@ -269,6 +306,60 @@
 
       {% block content %}{% endblock %}
     </div>
+    <div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" aria-label="Согласие на обработку cookie">
+      <p class="cookie-banner-text">
+        Мы используем cookie, чтобы улучшать работу сайта.
+      </p>
+      <div class="cookie-banner-actions">
+        <button id="cookie-accept-btn" class="btn" type="button">Согласен</button>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var KEY = "cookie_consent";
+        var banner = document.getElementById("cookie-banner");
+        var acceptBtn = document.getElementById("cookie-accept-btn");
+        if (!banner || !acceptBtn) {
+          return;
+        }
+
+        function hasConsent() {
+          var hasCookie = document.cookie.split(";").some(function (item) {
+            return item.trim().indexOf(KEY + "=1") === 0;
+          });
+          var hasStorage = false;
+          try {
+            hasStorage = window.localStorage.getItem(KEY) === "1";
+          } catch (e) {}
+          return hasCookie || hasStorage;
+        }
+
+        function rememberConsent() {
+          var maxAge = 60 * 60 * 24 * 365;
+          document.cookie = KEY + "=1; path=/; max-age=" + maxAge + "; SameSite=Lax";
+          try {
+            window.localStorage.setItem(KEY, "1");
+          } catch (e) {}
+        }
+
+        function hideBanner() {
+          banner.style.display = "none";
+        }
+
+        function showBanner() {
+          banner.style.display = "flex";
+        }
+
+        if (!hasConsent()) {
+          showBanner();
+        }
+
+        acceptBtn.addEventListener("click", function () {
+          rememberConsent();
+          hideBanner();
+        });
+      })();
+    </script>
   </body>
 </html>
 
