@@ -17,6 +17,50 @@ OPTION_LABELS = ["A", "B", "C", "D"]
 # Базовая высота выпрямлённого растра; ширина считается из соотношения сторон листа (как в PDF).
 _DEFAULT_RASTER_H = 2400
 
+# Логика выбора ответа по четырём score (0..1): см. _resolve_checkbox_selection
+_FILL_SPREAD_ALL_SIMILAR_MAX = 0.10  # max(scores)-min(scores) ≤ этого → все «одинаковые» → неясно
+_FILL_TOP_TWO_GAP_MIN = 0.05  # между 1-м и 2-м местом меньше → два ответа неразличимы → неясно
+
+
+def _resolve_checkbox_selection(
+    scores: list[float],
+    *,
+    min_fill_ratio: float,
+    uniform_spread_max: float = _FILL_SPREAD_ALL_SIMILAR_MAX,
+    top_two_gap_min: float = _FILL_TOP_TWO_GAP_MIN,
+) -> tuple[int | None, bool]:
+    """
+    По метрикам заполнения четырёх клеток решает индекс выбранного варианта и флаг неясности.
+
+    - Если разброс max−min не больше uniform_spread_max — клетки по счёту слишком похожи → неясно, без выбора.
+    - Если разброс больше: смотрим две лучшие клетки; если разрыв между ними меньше top_two_gap_min —
+      считаем множественное/неопределённое заполнение → неясно.
+    - Иначе победитель — ответ при условии, что его score не ниже min_fill_ratio; иначе считаем бланк по строке пустым.
+
+    Возвращает (selected_index или None, ambiguous).
+    """
+    if len(scores) != 4:
+        return None, True
+
+    smin = float(min(scores))
+    smax = float(max(scores))
+    spread = smax - smin
+
+    if spread <= uniform_spread_max:
+        return None, True
+
+    ranked = sorted([(float(s), i) for i, s in enumerate(scores)], reverse=True)
+    top1, i1 = ranked[0]
+    top2, _i2 = ranked[1]
+
+    if top1 < min_fill_ratio:
+        return None, False
+
+    if (top1 - top2) < top_two_gap_min:
+        return None, True
+
+    return i1, False
+
 
 def _order_points(pts: np.ndarray) -> np.ndarray:
     # Ожидаем shape (4,2)
@@ -635,15 +679,8 @@ def verify_blank_image(
     fill_scores_by_question: list[list[float]] = []
     overlay_regions: list[tuple[int, int, int, int, int, int]] = []
 
-    # Пороги по умолчанию (для старого шаблона).
-    min_fill_ratio = 0.08
-    ambiguous_delta = 0.03
-
-    # Для A6 с горизонтальными вариантами (layout v3) используем более чувствительные пороги
-    # и относительную проверку на фоне остальных вариантов в строке.
-    if layout_version == 3:
-        min_fill_ratio = 0.028
-        ambiguous_delta = 0.010
+    # Минимальный score лидера, чтобы считать клетку реально заполненной (ниже — строка «пустая»).
+    min_fill_ratio = 0.08 if layout_version != 3 else 0.028
 
     for qi in range(blank.question_count):
         if qi < len(anchors):
@@ -686,29 +723,8 @@ def verify_blank_image(
             scores.append(_analyze_checkbox_fill(warped_gray, (x0, y0, x1, y1)))
 
         fill_scores_by_question.append(scores)
-        top_idx = int(np.argmax(scores))
-        top_score = scores[top_idx]
 
-        # second max
-        sorted_scores = sorted([(s, i) for i, s in enumerate(scores)], reverse=True)
-        second_score = sorted_scores[1][0] if len(sorted_scores) > 1 else 0.0
-
-        selected_index = None
-        ambiguous = False
-        mean_other = (sum(scores) - top_score) / 3.0
-        relative_margin = top_score - mean_other
-
-        if top_score >= min_fill_ratio:
-            if layout_version == 3:
-                # На A6 считаем вариант выбранным, если он заметно "чернее" остальных.
-                if relative_margin >= 0.008:
-                    if (top_score - second_score) < ambiguous_delta:
-                        ambiguous = True
-                    selected_index = top_idx
-            else:
-                if (top_score - second_score) < ambiguous_delta:
-                    ambiguous = True
-                selected_index = top_idx
+        selected_index, ambiguous = _resolve_checkbox_selection(scores, min_fill_ratio=min_fill_ratio)
 
         correct_index = blank.questions[qi].correct_index  # вопросы в порядке qi
         is_correct = selected_index is not None and (selected_index == correct_index) and (not ambiguous)
