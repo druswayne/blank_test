@@ -43,6 +43,20 @@ def _enhance_contrast_bgr(img_bgr: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
 
+def _denoise_gray(gray: np.ndarray) -> np.ndarray:
+    """
+    Шум с фото: импульсный (медиана 3×3) + bilateral (пятна/зерно, без сильного размытия рёбер).
+
+    Bilateral сохраняет контуры клеток и тонких штрихов лучше, чем одно большое GaussianBlur.
+    """
+    # Точечный шум ISO (соль/перец)
+    m = cv2.medianBlur(gray, 3)
+    h, w = m.shape[:2]
+    # Диаметр не раздуваем — крестики и тонкие линии остаются читаемыми
+    d = 7 if max(h, w) >= 640 else 5
+    return cv2.bilateralFilter(m, d=d, sigmaColor=55, sigmaSpace=55)
+
+
 def _adaptive_block_size(h: int, w: int) -> int:
     """Размер окна для adaptiveThreshold: как у мобильных сканеров документов (локальный порог по сетке)."""
     m = min(h, w)
@@ -64,7 +78,7 @@ def _adaptive_block_size(h: int, w: int) -> int:
 def apply_mobile_document_style(img_bgr: np.ndarray) -> np.ndarray:
     """
     Цепочка в духе «Документы / фото ЧБ»:
-    выравнивание освещения → CLAHE → лёгкое сглаживание → адаптивная пороговая бинаризация.
+    выравнивание освещения → CLAHE → подавление шума → лёгкое сглаживание → адаптивный порог.
 
     Получается контрастное ч/б с белым фоном и чёрными элементами (как в превью телефона).
     """
@@ -75,7 +89,9 @@ def apply_mobile_document_style(img_bgr: np.ndarray) -> np.ndarray:
     adjusted = _enhance_contrast_bgr(adjusted)
     gray = cv2.cvtColor(adjusted, cv2.COLOR_BGR2GRAY)
 
-    # Лёгкое размытие перед порогом — меньше «крошки» на бинарном слое (часто есть в мобильных пайплайнах)
+    gray = _denoise_gray(gray)
+
+    # Лёгкое размытие перед порогом — сглаживает мелкую «крошку» после bilateral без раздувания рёбер
     blur = cv2.GaussianBlur(gray, (3, 3), 0)
 
     h, w = blur.shape[:2]
