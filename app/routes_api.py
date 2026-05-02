@@ -8,7 +8,6 @@ import cv2
 from sqlalchemy import text
 
 from .models import TestBlank, TestQuestion, TestQuestionStats, db
-from .services.photo_preprocess_service import apply_mobile_document_style
 from .services.qr_service import verify_qr_payload
 from .services.verify_service import _decode_qr_text_with_points, verify_blank_image
 
@@ -94,6 +93,9 @@ def _accumulate_question_stats(blank: TestBlank, verify_payload: dict) -> None:
 def api_verify():
     """
     Ожидает multipart/form-data с файлом `photo`.
+
+    Клиент может присылать уже обработанное изображение (режим «документ / ч/б» на телефоне).
+    Рекомендуется поле `qr_payload`, если фото сильно бинаризовано — QR с картинки может не прочитаться.
     """
     if "photo" not in request.files:
         return jsonify({"status": "error", "message": "Нет поля `photo`"}), 400
@@ -109,31 +111,14 @@ def api_verify():
     if img_bgr is None:
         return jsonify({"status": "error", "message": "Не удалось декодировать изображение"}), 400
 
-    img_for_verify = img_bgr
     archive_run_id: str | None = None
-    img_processed: np.ndarray | None = None
-    try:
-        img_processed = apply_mobile_document_style(img_bgr)
-    except Exception as exc:
-        logger.warning("Предобработка фото verify (mobile-style): %s", exc)
-
-    if img_processed is not None and current_app.config.get("VERIFY_USE_PREPROCESSED_FOR_VERIFY"):
-        img_for_verify = img_processed
-
     if current_app.config.get("VERIFY_ARCHIVE_PHOTOS"):
         try:
             archive_run_id = str(uuid.uuid4())
-            orig_dir = Path(current_app.config["VERIFY_PHOTO_ORIGINAL_DIR"])
-            proc_dir = Path(current_app.config["VERIFY_PHOTO_PROCESSED_DIR"])
-            orig_dir.mkdir(parents=True, exist_ok=True)
-            proc_dir.mkdir(parents=True, exist_ok=True)
-            orig_path = orig_dir / f"{archive_run_id}.jpg"
-            proc_path = proc_dir / f"{archive_run_id}.jpg"
-            orig_path.write_bytes(photo_bytes)
-            if img_processed is not None:
-                enc_ok, enc_buf = cv2.imencode(".jpg", img_processed, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
-                if enc_ok:
-                    proc_path.write_bytes(enc_buf.tobytes())
+            archive_dir = Path(current_app.config["VERIFY_PHOTO_ARCHIVE_DIR"])
+            archive_dir.mkdir(parents=True, exist_ok=True)
+            archive_path = archive_dir / f"{archive_run_id}.jpg"
+            archive_path.write_bytes(photo_bytes)
         except OSError as exc:
             logger.warning("Архив фото verify (диск): %s", exc)
             archive_run_id = None
@@ -156,18 +141,31 @@ def api_verify():
         if not blank:
             return jsonify({"status": "error", "message": "Бланк не найден"}), 404
 
-        payload = verify_blank_image(
-            img_bgr=img_for_verify,
+        payload, annotated_warped = verify_blank_image(
+            img_bgr=img_bgr,
             blank=blank,
             qr_payload_raw=qr_raw,
             qr_secret=qr_secret,
             qr_payload_version=qr_payload_version,
             qr_points_img=qr_points,
+            return_annotated_warped=archive_run_id is not None,
         )
         _accumulate_question_stats(blank, payload)
         body = {"status": "ok", **payload}
         if archive_run_id is not None:
             body["archive_photo_id"] = archive_run_id
+            if annotated_warped is not None:
+                try:
+                    archive_dir = Path(current_app.config["VERIFY_PHOTO_ARCHIVE_DIR"])
+                    enc_ok, enc_buf = cv2.imencode(
+                        ".jpg", annotated_warped, [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+                    )
+                    if enc_ok:
+                        ann_path = archive_dir / f"{archive_run_id}_annotated.jpg"
+                        ann_path.write_bytes(enc_buf.tobytes())
+                        body["archive_photo_annotated"] = f"{archive_run_id}_annotated.jpg"
+                except Exception as exc:
+                    logger.warning("Сохранение разметки verify: %s", exc)
         return jsonify(body)
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e)}), 400

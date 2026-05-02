@@ -244,6 +244,75 @@ def _mm_to_px_y(y_from_top_mm: float, *, page_h_mm: float, target_h: int) -> int
     return int(y_from_top_mm / page_h_mm * target_h)
 
 
+def _draw_warped_verify_overlay(
+    warped_bgr: np.ndarray,
+    *,
+    regions: list[tuple[int, int, int, int, int, int]],
+    results: list[dict],
+) -> np.ndarray:
+    """
+    Разметка для архива отладки на выпрямленном растре страницы.
+
+    regions: (question_index 0..n-1, opt_index 0..3, x0, y0, x1, y1) — ROI как в _analyze_checkbox_fill.
+
+    Оранжевая рамка (с запасом) — «клетка варианта», зелёная — точная зона поиска отметки,
+    пурпурная жирная — распознанный выбор (если есть).
+    """
+    vis = warped_bgr.copy()
+    hh, ww = vis.shape[:2]
+    color_cell = (0, 165, 255)
+    color_roi = (80, 220, 80)
+    color_pick = (255, 0, 255)
+
+    sel_by_q: dict[int, int | None] = {}
+    for row in results:
+        qn = int(row["question_number"]) - 1
+        sel = row.get("selected")
+        if sel is None or str(sel).strip() == "":
+            sel_by_q[qn] = None
+        else:
+            lab = str(sel).strip().upper()
+            sel_by_q[qn] = OPTION_LABELS.index(lab) if lab in OPTION_LABELS else None
+
+    fs = float(np.clip(0.28 + 0.35 * (hh / _DEFAULT_RASTER_H), 0.35, 0.65))
+
+    for qi, oi, x0, y0, x1, y1 in regions:
+        margin = int(np.clip((x1 - x0) / 10.0, 2.0, 14.0))
+        ox0 = max(0, x0 - margin)
+        oy0 = max(0, y0 - margin)
+        ox1 = min(ww - 1, x1 + margin)
+        oy1 = min(hh - 1, y1 + margin)
+        cv2.rectangle(vis, (ox0, oy0), (ox1, oy1), color_cell, 2)
+        cv2.rectangle(vis, (x0, y0), (x1, y1), color_roi, 2)
+        label = f"Q{qi + 1}-{OPTION_LABELS[oi]}"
+        ty = min(y1 - 4, y0 + int(22 * fs))
+        cv2.putText(
+            vis,
+            label,
+            (x0 + 3, ty),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            fs,
+            color_roi,
+            1,
+            cv2.LINE_AA,
+        )
+        if sel_by_q.get(qi) == oi:
+            cv2.rectangle(vis, (x0 - 3, y0 - 3), (x1 + 3, y1 + 3), color_pick, 3)
+
+    legend = "Orange: cell | Green: mark ROI | Magenta: selected"
+    cv2.putText(
+        vis,
+        legend,
+        (8, hh - 10),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        fs * 0.85,
+        (220, 220, 220),
+        1,
+        cv2.LINE_AA,
+    )
+    return vis
+
+
 def _analyze_checkbox_fill(gray: np.ndarray, crop_rect: tuple[int, int, int, int]) -> float:
     x0, y0, x1, y1 = crop_rect
     crop = gray[y0:y1, x0:x1]
@@ -391,7 +460,8 @@ def verify_blank_image(
     qr_secret: str,
     qr_payload_version: str,
     qr_points_img: np.ndarray | None = None,
-) -> dict:
+    return_annotated_warped: bool = False,
+) -> tuple[dict, np.ndarray | None]:
     # QR payload -> blank_uuid already validated in route? Здесь перепроверяем сигнатуру.
     _ = verify_qr_payload(
         payload=qr_payload_raw,
@@ -542,6 +612,7 @@ def verify_blank_image(
     # Анализ чекбоксов
     results: list[dict] = []
     fill_scores_by_question: list[list[float]] = []
+    overlay_regions: list[tuple[int, int, int, int, int, int]] = []
 
     # Пороги по умолчанию (для старого шаблона).
     min_fill_ratio = 0.08
@@ -589,6 +660,8 @@ def verify_blank_image(
                 _mm_to_px_y(inner_top_mm + inner_side, page_h_mm=page_h_mm, target_h=target_h),
             )
 
+            overlay_regions.append((qi, opt_index, x0, y0, x1, y1))
+
             scores.append(_analyze_checkbox_fill(warped_gray, (x0, y0, x1, y1)))
 
         fill_scores_by_question.append(scores)
@@ -634,10 +707,20 @@ def verify_blank_image(
 
     correct_count = sum(1 for r in results if r["is_correct"])
 
-    return {
+    payload = {
         "blank_uuid": blank.uuid,
         "questions_total": blank.question_count,
         "correct_count": correct_count,
         "results": results,
     }
+
+    annotated: np.ndarray | None = None
+    if return_annotated_warped and overlay_regions:
+        annotated = _draw_warped_verify_overlay(
+            warped_bgr,
+            regions=overlay_regions,
+            results=results,
+        )
+
+    return payload, annotated
 
