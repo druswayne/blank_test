@@ -249,6 +249,7 @@ def _draw_warped_verify_overlay(
     *,
     regions: list[tuple[int, int, int, int, int, int]],
     results: list[dict],
+    fill_scores_by_question: list[list[float]],
 ) -> np.ndarray:
     """
     Разметка для архива отладки на выпрямленном растре страницы.
@@ -257,6 +258,7 @@ def _draw_warped_verify_overlay(
 
     Оранжевая рамка (с запасом) — «клетка варианта», зелёная — точная зона поиска отметки,
     пурпурная жирная — распознанный выбор (если есть).
+    В каждой зелёной рамке — процент по метрике заполнения (как в scores JSON), не геометрическая площадь.
     """
     vis = warped_bgr.copy()
     hh, ww = vis.shape[:2]
@@ -275,6 +277,8 @@ def _draw_warped_verify_overlay(
             sel_by_q[qn] = OPTION_LABELS.index(lab) if lab in OPTION_LABELS else None
 
     fs = float(np.clip(0.28 + 0.35 * (hh / _DEFAULT_RASTER_H), 0.35, 0.65))
+    fs_pct = float(np.clip(fs * 0.92, 0.32, 0.6))
+    color_pct = (45, 45, 45)
 
     for qi, oi, x0, y0, x1, y1 in regions:
         margin = int(np.clip((x1 - x0) / 10.0, 2.0, 14.0))
@@ -296,10 +300,27 @@ def _draw_warped_verify_overlay(
             1,
             cv2.LINE_AA,
         )
+        try:
+            raw = fill_scores_by_question[qi][oi]
+            pct = max(0.0, min(100.0, float(raw) * 100.0))
+            pct_text = f"{pct:.1f}%"
+        except (IndexError, TypeError, ValueError):
+            pct_text = "—"
+        ty_pct = min(y1 - 5, y0 + int(42 * fs))
+        cv2.putText(
+            vis,
+            pct_text,
+            (x0 + 3, ty_pct),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            fs_pct,
+            color_pct,
+            1,
+            cv2.LINE_AA,
+        )
         if sel_by_q.get(qi) == oi:
             cv2.rectangle(vis, (x0 - 3, y0 - 3), (x1 + 3, y1 + 3), color_pick, 3)
 
-    legend = "Orange: cell | Green: mark ROI | Magenta: selected"
+    legend = "Orange: cell | Green: ROI | Magenta: picked | % = fill score (algorithm)"
     cv2.putText(
         vis,
         legend,
@@ -720,6 +741,7 @@ def verify_blank_image(
             warped_bgr,
             regions=overlay_regions,
             results=results,
+            fill_scores_by_question=fill_scores_by_question,
         )
 
     return payload, annotated
