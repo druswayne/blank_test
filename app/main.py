@@ -84,19 +84,6 @@ def create_app() -> Flask:
     )
     Path(app.config["PDF_DIR"]).mkdir(parents=True, exist_ok=True)
 
-    # Архив JPEG с телефона после клиентской обработки («документ / ч/б»)
-    _data = Path(__file__).resolve().parent.parent / "data"
-    app.config["VERIFY_PHOTO_ARCHIVE_DIR"] = os.getenv(
-        "VERIFY_PHOTO_ARCHIVE_DIR", str(_data / "verify_photos" / "archive")
-    )
-    app.config["VERIFY_ARCHIVE_PHOTOS"] = os.getenv("VERIFY_ARCHIVE_PHOTOS", "1").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-    )
-
-    Path(app.config["VERIFY_PHOTO_ARCHIVE_DIR"]).mkdir(parents=True, exist_ok=True)
-
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "web.login"

@@ -63,11 +63,21 @@
     #dashboard-help-modal h3 {
       margin: 0;
       font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 0%, #c8d8ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    @supports not (background-clip: text) {
+      #dashboard-help-modal h3 { color: #eaf0ff; }
     }
     #dashboard-help-modal .hero-sub {
       margin-top: 8px;
       color: #c8d8ff;
       font-size: 14px;
+      line-height: 1.45;
     }
     #dashboard-help-modal .body {
       padding: 16px 18px 14px;
@@ -76,6 +86,41 @@
       display: grid;
       grid-template-columns: 1fr;
       gap: 10px;
+    }
+    #dashboard-help-modal .steps-section-title {
+      margin-top: 20px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+      color: #f2f6ff;
+      line-height: 1.25;
+    }
+    #dashboard-help-modal .steps-section-title::before {
+      content: "";
+      width: 4px;
+      align-self: stretch;
+      min-height: 1.15em;
+      border-radius: 4px;
+      background: linear-gradient(180deg, #6b9aff 0%, #8b6cff 55%, #5b7cff 100%);
+      box-shadow: 0 0 14px rgba(107, 154, 255, 0.45);
+      flex-shrink: 0;
+    }
+    #dashboard-help-modal .body > .steps-section-title:first-of-type {
+      margin-top: 0;
+    }
+    #dashboard-help-modal .step .apk-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    #dashboard-help-modal .step .apk-row a.btn {
+      margin: 0;
     }
     #dashboard-help-modal .step {
       border: 1px solid rgba(172, 191, 255, 0.24);
@@ -115,9 +160,25 @@
       padding: 10px 12px;
     }
     #dashboard-help-modal .rules-title {
-      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: -0.01em;
       color: #ffe7a3;
-      margin-bottom: 6px;
+      margin: -2px -2px 10px;
+      padding: 6px 2px 10px;
+      border-bottom: 1px solid rgba(255, 231, 163, 0.22);
+    }
+    #dashboard-help-modal .rules-title::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ffd76b, #f59e0b);
+      box-shadow: 0 0 10px rgba(255, 215, 107, 0.5);
+      flex-shrink: 0;
     }
     #dashboard-help-modal ul {
       margin: 0;
@@ -129,6 +190,22 @@
     #dashboard-help-modal .rules li::before {
       content: "• ";
       color: #ffd76b;
+    }
+    #dashboard-help-modal .rules.photo-tips {
+      margin-top: 12px;
+      border-color: rgba(129, 214, 255, 0.35);
+      background: rgba(30, 70, 120, 0.18);
+    }
+    #dashboard-help-modal .rules.photo-tips .rules-title {
+      color: #d4f1ff;
+      border-bottom-color: rgba(129, 214, 255, 0.28);
+    }
+    #dashboard-help-modal .rules.photo-tips .rules-title::before {
+      background: linear-gradient(135deg, #7dd3fc, #38bdf8);
+      box-shadow: 0 0 10px rgba(125, 211, 252, 0.45);
+    }
+    #dashboard-help-modal .rules.photo-tips li::before {
+      color: #7dd3fc;
     }
     #dashboard-help-modal .note {
       margin-top: 12px;
@@ -189,9 +266,10 @@
     <div class="panel">
       <div class="hero">
         <h3 id="dashboard-help-title">Быстрый старт</h3>
-        <div class="hero-sub">Три шага, чтобы начать проводить тестирование уже сейчас.</div>
+        <div class="hero-sub">Подготовка теста и проверка бланков: по шагам, без лишних деталей.</div>
       </div>
       <div class="body">
+        <div class="steps-section-title">Подготовка теста</div>
         <div class="steps">
           <div class="step">
             <div class="step-head"><span class="step-num">1</span>Подготовьте тест</div>
@@ -212,6 +290,40 @@
             <li>Отмечать крестиком только один ответ на вопрос.</li>
             <li>Лучше заполнять карандашом, чтобы можно было исправить.</li>
             <li>Исправления и двойные отметки могут засчитываться как неверный ответ.</li>
+          </ul>
+        </div>
+        <div class="steps-section-title">Проверка работ</div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-head"><span class="step-num">1</span>Установите мобильное приложение</div>
+            <div class="step-text">
+              Проверка бланков выполняется в отдельном приложении на телефоне. Оно распространяется только как APK-файл и устанавливается на <strong>Android</strong>; на iPhone и других системах такой способ установки недоступен.
+              <div class="apk-row">
+                <a class="btn secondary" href="{{ url_for('static', filename='QuizOrbit.apk') }}" download>Скачать APK для Android</a>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-num">2</span>Наведите камеру на бланк с ответами</div>
+            <div class="step-text">Откройте приложение и направьте камеру на бланк так, чтобы <strong>QR-код был полностью в кадре</strong> и приложение успело его распознать (в превью обычно видно, что код «считался»). Затем нажмите кнопку <strong>«Сфотографировать»</strong>.</div>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-num">3</span>Дождитесь обработки и посмотрите результат</div>
+            <div class="step-text">Не закрывайте экран сразу после снимка: дождитесь окончания обработки. Когда она завершится, на экране появятся <strong>результаты проверки</strong> этого бланка.</div>
+          </div>
+          <div class="step">
+            <div class="step-head"><span class="step-num">4</span>Повторное сканирование</div>
+            <div class="step-text">Чтобы сфотографировать другой бланк или сделать новый снимок того же бланка, нажмите в приложении кнопку <strong>«Повторить»</strong>.</div>
+          </div>
+        </div>
+        <div class="rules photo-tips">
+          <div class="rules-title">Рекомендации для съёмки</div>
+          <ul>
+            <li>Держите телефон <strong>примерно прямо над бланком</strong>, без сильного наклона — так проще попасть в фокус и избежать искажений.</li>
+            <li>Выберите <strong>ровное освещение</strong>: дневной свет или лампа сбоку; не закрывайте бланк тенью от руки.</li>
+            <li>Следите, чтобы на бланке <strong>не было сильных бликов</strong> от лампы или окна — они мешают распознаванию отметок.</li>
+            <li>QR-код должен быть <strong>чётким и целиком в кадре</strong>, не обрезанным по краям.</li>
+            <li>В момент нажатия «Сфотографировать» <strong>не двигайте телефон</strong>, чтобы снимок не получился смазанным.</li>
           </ul>
         </div>
         <div class="note">Подсказку можно снова открыть кнопкой «?» над блоком «Центр тестов».</div>
