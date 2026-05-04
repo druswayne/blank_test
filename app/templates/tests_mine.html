@@ -61,12 +61,65 @@
       width: 100%;
       text-align: center;
     }
+    .tests-page-nav {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 14px;
+    }
+    .tests-page-nav__back {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .tests-page-nav__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex: 1 1 220px;
+    }
+    .tests-page-nav__actions .btn {
+      min-height: 44px;
+      padding: 10px 16px;
+      font-size: 14px;
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      .tests-page-nav {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .tests-page-nav__actions {
+        flex: 1 1 auto;
+        justify-content: stretch;
+      }
+      .tests-page-nav__actions .btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+      }
+    }
+    @media (max-width: 380px) {
+      .tests-page-nav__actions {
+        flex-direction: column;
+      }
+      .tests-page-nav__actions .btn {
+        flex: 1 1 auto;
+        width: 100%;
+      }
+    }
   </style>
 {% endblock %}
 {% block content %}
   <h2>Мои тесты</h2>
-  <div style="margin-top:12px;">
-    <a href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
+  <div class="tests-page-nav">
+    <a class="tests-page-nav__back" href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
+    <div class="tests-page-nav__actions">
+      <a class="btn" href="{{ url_for('web.tests_new') }}">Создать тест</a>
+      <a class="btn secondary" href="{{ url_for('web.tests_search') }}">Поиск тестов</a>
+    </div>
   </div>
 
   <div class="box" style="margin-top:16px;">

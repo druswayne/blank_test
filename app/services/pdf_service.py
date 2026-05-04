@@ -183,7 +183,8 @@ def generate_answers_pdf_a6(
     qr_payload_version: str,
 ) -> tuple[str, dict]:
     """
-    A6: название, ФИО, класс, QR; задания столбиком — номер и 4 квадрата в строку (фикс. шаг).
+    A6: название, ФИО, класс, строка квадратиков для отметок учителя по вопросам, QR;
+    задания столбиком — номер и 4 квадрата в строку (фикс. шаг).
     """
     _ensure_unicode_font()
     font_name = FONT_REGISTERED_NAME if FONT_REGISTERED_NAME in pdfmetrics.getRegisteredFontNames() else "Helvetica"
@@ -251,10 +252,47 @@ def generate_answers_pdf_a6(
         cls_line_end_pt = text_right_mm * mm
         if cls_line_end_pt > cls_line_start_pt:
             c.line(cls_line_start_pt, y_cls_pt - 1.0, cls_line_end_pt, y_cls_pt - 1.0)
-        y_cursor_mm += 7.0
+        # 10px ↔ мм (96 dpi) — один коэффициент для отступов PDF
+        px10_to_mm = 10.0 * 25.4 / 96.0
+        # Отступ после «Класс:» до полоски с клетками учителя (на 10px меньше прежних 4 мм).
+        y_cursor_mm += max(1.0, 4.0 - px10_to_mm)
+
+        # Пустые квадраты под отметки учителя (верно/неверно); над каждым — номер вопроса по центру.
+        teacher_top_mm = y_cursor_mm + 0.5
+        usable_w_mm = max(12.0, (text_right_mm - m))
+        square_gap_mm = 1.0 if n <= 24 else 0.65
+        raw_sq = (usable_w_mm - max(0, n - 1) * square_gap_mm) / max(1, n)
+        teacher_square_mm = max(2.3, min(float(A6M.checkbox_outer_mm), raw_sq))
+        num_row_h_mm = 3.2
+        gap_num_sq_mm = 0.75
+        square_top_mm = teacher_top_mm + num_row_h_mm + gap_num_sq_mm
+        teacher_num_font_pt = 5.5
+        c.setFont(font_name, teacher_num_font_pt)
+        num_baseline_from_top_mm = teacher_top_mm + num_row_h_mm - 0.9
+        y_num_pt = (page_h_mm - num_baseline_from_top_mm) * mm
+        for idx in range(n):
+            left_mm = m + idx * (teacher_square_mm + square_gap_mm)
+            cx_pt = (left_mm + teacher_square_mm / 2.0) * mm
+            c.drawCentredString(cx_pt, y_num_pt, str(idx + 1))
+            x_sq = left_mm * mm
+            y_sq = (page_h_mm - square_top_mm - teacher_square_mm) * mm
+            c.rect(x_sq, y_sq, teacher_square_mm * mm, teacher_square_mm * mm, stroke=1, fill=0)
+        c.setFont(font_name, 8.0)
+
+        y_cursor_mm = square_top_mm + teacher_square_mm + 1.2
+        teacher_square_bottom_mm = square_top_mm + teacher_square_mm
 
         header_bottom_mm = max(qr_top_mm + qr_size + 1.5, y_cursor_mm)
-        content_top_mm = header_bottom_mm + 2.0
+        # ArUco: верх листа метки (my) = content_top - marker_offset. Нижний край квадратов учителя
+        # должен быть выше верха метки, иначе зона распознавания клеток A–D пересекается с «шапкой».
+        # Зазор после квадратов учителя: базовый + 10px (96 dpi → мм)
+        min_content_top_clear_markers_mm = (
+            teacher_square_bottom_mm + marker_offset_mm + 0.5 + px10_to_mm
+        )
+        content_top_mm = max(
+            header_bottom_mm + 2.0,
+            min_content_top_clear_markers_mm,
+        )
 
         rows_meta: list[dict] = []
 
@@ -323,7 +361,7 @@ def generate_answers_pdf_a6(
             markers_first_page.extend(markers)
         return rows_meta, markers
 
-    for page_idx in range(2):
+    for page_idx in range(4):
         _draw_answer_page(page_idx)
         c.showPage()
 

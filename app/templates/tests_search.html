@@ -3,7 +3,6 @@
 {% block head %}
   <style>
     .tests-search-page .muted-note { color:#64748b; margin-top:6px; }
-    .tests-search-page .back-link-wrap { margin-top:12px; }
     .tests-search-page .search-form { margin-top:16px; }
     .tests-search-page .advanced-search {
       margin-top: 14px;
@@ -28,7 +27,15 @@
     .tests-search-page .subject-item { font-weight:500; }
     .tests-search-page .search-actions { margin-top:14px; }
     .tests-search-page .results-meta { margin-top:12px; color:#475569; font-size:14px; }
-    .tests-search-page .table-wrap { margin-top:16px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .tests-search-page .table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      outline: none;
+    }
     .tests-search-page .actions-cell { min-width:300px; }
     .tests-search-page .rating-cell { min-width:260px; }
     .tests-search-page .action-buttons { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
@@ -87,6 +94,32 @@
       width: 100%;
       text-align: center;
     }
+    .tests-search-page .tests-page-nav {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 14px;
+    }
+    .tests-search-page .tests-page-nav__back {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .tests-search-page .tests-page-nav__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex: 1 1 220px;
+    }
+    .tests-search-page .tests-page-nav__actions .btn {
+      min-height: 44px;
+      padding: 10px 16px;
+      font-size: 14px;
+      text-align: center;
+    }
     .tests-search-page .copy-form { margin:0; }
     .tests-search-page .rating-info { font-size:13px; color:#475569; margin-bottom:6px; }
     .tests-search-page .my-rating { color:#16a34a; font-size:13px; }
@@ -94,6 +127,13 @@
     .tests-search-page .pager { margin-top:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .tests-search-page .pager-text { color:#475569; }
     .tests-search-page .empty-state { margin-top:16px; color:#64748b; }
+    .tests-search-page .search-results-section {
+      scroll-margin-top: 76px;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      outline: none;
+    }
 
     #preview-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); z-index: 80; }
     #preview-modal {
@@ -126,6 +166,29 @@
       background: #fff;
     }
 
+    @media (max-width: 640px) {
+      .tests-search-page .tests-page-nav {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .tests-search-page .tests-page-nav__actions {
+        flex: 1 1 auto;
+        justify-content: stretch;
+      }
+      .tests-search-page .tests-page-nav__actions .btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+      }
+    }
+    @media (max-width: 380px) {
+      .tests-search-page .tests-page-nav__actions {
+        flex-direction: column;
+      }
+      .tests-search-page .tests-page-nav__actions .btn {
+        flex: 1 1 auto;
+        width: 100%;
+      }
+    }
     @media (max-width: 768px) {
       .tests-search-page h2 { margin-bottom: 4px; }
       .tests-search-page .box { padding: 12px; }
@@ -157,8 +220,12 @@
   <h2>Поиск тестов</h2>
   <p class="muted-note">Отображаются только тесты с включённым «Открыть доступ».</p>
 
-  <div class="back-link-wrap">
-    <a href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
+  <div class="tests-page-nav">
+    <a class="tests-page-nav__back" href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
+    <div class="tests-page-nav__actions">
+      <a class="btn" href="{{ url_for('web.tests_new') }}">Создать тест</a>
+      <a class="btn secondary" href="{{ url_for('web.tests_mine') }}">Мои тесты</a>
+    </div>
   </div>
 
   <form method="get" class="box search-form">
@@ -227,6 +294,7 @@
     </div>
   </form>
 
+  <div id="search-results" class="search-results-section">
   {% if items %}
     <div class="results-meta">Показано {{ items|length }} из {{ total }}.</div>
     <div class="table-wrap">
@@ -301,6 +369,7 @@
   {% else %}
     <div class="box empty-state">Ничего не найдено. Проверьте фильтры или создайте тест с открытым доступом.</div>
   {% endif %}
+  </div>
 
   <div id="preview-backdrop"></div>
   <div id="preview-modal" role="dialog" aria-modal="true" aria-label="Предпросмотр теста">
@@ -313,6 +382,33 @@
 
   <script>
     (function () {
+      var form = document.querySelector('form.search-form');
+      if (form) {
+        form.addEventListener('submit', function () {
+          try {
+            sessionStorage.setItem('tests_search_scroll_results', '1');
+          } catch (e) {}
+        });
+      }
+      function scrollToResultsIfNeeded() {
+        try {
+          if (sessionStorage.getItem('tests_search_scroll_results') !== '1') return;
+          sessionStorage.removeItem('tests_search_scroll_results');
+        } catch (e) {
+          return;
+        }
+        var el = document.getElementById('search-results');
+        if (!el) return;
+        requestAnimationFrame(function () {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scrollToResultsIfNeeded);
+      } else {
+        scrollToResultsIfNeeded();
+      }
+
       var backdrop = document.getElementById('preview-backdrop');
       var modal = document.getElementById('preview-modal');
       var frame = document.getElementById('preview-frame');
