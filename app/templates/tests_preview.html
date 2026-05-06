@@ -3,13 +3,35 @@
 {% block head %}
   <style>
     .question-block { border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
-    .q-row, .o-row { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: start; }
-    .q-num { font-weight: 700; font-size: 18px; line-height: 1.4; }
-    .o-num { font-weight: 700; font-size: 16px; line-height: 1.4; }
-    .q-body, .o-body { line-height: 1.5; }
+    .q-row { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: start; }
+    .q-num { font-weight: 700; font-size: 18px; line-height: 1.35; }
+    .q-body { line-height: 1.35; }
     .q-body img, .o-body img { max-width: 100%; height: auto; }
-    .q-body p, .o-body p { margin: 0 0 6px 0; }
-    .o-row { margin-top: 6px; }
+    .q-body p, .o-body p { margin: 0 0 2px 0; }
+    .options-grid {
+      display: grid;
+      gap: 4px 10px;
+      margin-top: 6px;
+    }
+    .options-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .options-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .options-grid.cols-1 { grid-template-columns: 1fr; }
+    .o-row {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 6px;
+      align-items: start;
+      min-width: 0;
+    }
+    .o-num { font-weight: 700; font-size: 16px; line-height: 1.3; white-space: nowrap; }
+    .o-body { line-height: 1.35; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+    @media (max-width: 980px) {
+      .options-grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .options-grid.cols-2,
+      .options-grid.cols-4 { grid-template-columns: 1fr; }
+    }
   </style>
 {% endblock %}
 {% block content %}
@@ -32,26 +54,41 @@
   {% if blank.questions %}
     <div style="margin-top:16px;">
       {% for q in blank.questions|sort(attribute='question_number') %}
+        {% set a_len = (q.option_a|striptags|trim|length) %}
+        {% set b_len = (q.option_b|striptags|trim|length) %}
+        {% set c_len = (q.option_c|striptags|trim|length) %}
+        {% set d_len = (q.option_d|striptags|trim|length) %}
+        {% set total_len = a_len + b_len + c_len + d_len %}
+        {% set max_len = [a_len, b_len, c_len, d_len]|max %}
+        {% if max_len <= 24 and total_len <= 84 %}
+          {% set option_cols = 4 %}
+        {% elif max_len <= 62 and total_len <= 220 %}
+          {% set option_cols = 2 %}
+        {% else %}
+          {% set option_cols = 1 %}
+        {% endif %}
         <div class="question-block">
           <div class="q-row">
             <div class="q-num">{{ q.question_number }}.</div>
             <div class="q-body">{{ q.question_text|safe }}</div>
           </div>
-          <div class="o-row">
-            <div class="o-num">A)</div>
-            <div class="o-body">{{ q.option_a|safe }}</div>
-          </div>
-          <div class="o-row">
-            <div class="o-num">B)</div>
-            <div class="o-body">{{ q.option_b|safe }}</div>
-          </div>
-          <div class="o-row">
-            <div class="o-num">C)</div>
-            <div class="o-body">{{ q.option_c|safe }}</div>
-          </div>
-          <div class="o-row">
-            <div class="o-num">D)</div>
-            <div class="o-body">{{ q.option_d|safe }}</div>
+          <div class="options-grid cols-{{ option_cols }}">
+            <div class="o-row">
+              <div class="o-num">A)</div>
+              <div class="o-body">{{ q.option_a|safe }}</div>
+            </div>
+            <div class="o-row">
+              <div class="o-num">B)</div>
+              <div class="o-body">{{ q.option_b|safe }}</div>
+            </div>
+            <div class="o-row">
+              <div class="o-num">C)</div>
+              <div class="o-body">{{ q.option_c|safe }}</div>
+            </div>
+            <div class="o-row">
+              <div class="o-num">D)</div>
+              <div class="o-body">{{ q.option_d|safe }}</div>
+            </div>
           </div>
         </div>
       {% endfor %}

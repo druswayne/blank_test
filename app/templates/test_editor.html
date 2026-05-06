@@ -214,6 +214,71 @@
       max-width: 100%;
       height: auto;
     }
+    .pdf-preview {
+      background: #fff;
+      color: #111827;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+    .pdf-preview-title {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      line-height: 1.1;
+      color: #0f172a;
+    }
+    .pdf-question-block {
+      border: 1px solid #374151;
+      padding: 5px 7px;
+      margin: 2px 0;
+    }
+    .pdf-question-row {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 4px;
+      align-items: start;
+    }
+    .pdf-q-num {
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .pdf-q-text p,
+    .pdf-o-text p {
+      margin: 0 0 1px 0;
+      line-height: 1.2;
+    }
+    .pdf-options-grid {
+      display: grid;
+      gap: 1px 6px;
+      margin-top: 1px;
+    }
+    .pdf-options-grid.cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .pdf-options-grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .pdf-options-grid.cols-1 {
+      grid-template-columns: 1fr;
+    }
+    .pdf-option-row {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 3px;
+      align-items: start;
+      min-width: 0;
+    }
+    .pdf-o-num {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .pdf-o-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
     #preview-plain-wrap {
       border: 1px solid rgba(172, 191, 255, 0.25);
       border-radius: 10px;
@@ -246,8 +311,12 @@
 
 {% block content %}
   <h2>{% if mode == 'edit' %}Редактирование теста{% else %}Создание теста{% endif %}</h2>
-  <div style="margin-top:10px;">
+  <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
     <a href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="btn" href="{{ url_for('web.tests_mine') }}">Мои тесты</a>
+      <a class="btn secondary" href="{{ url_for('web.tests_search') }}">Поиск тестов</a>
+    </div>
   </div>
 
   <form method="post" id="main-form" action="{% if mode == 'edit' %}{{ url_for('web.tests_edit', blank_uuid=blank.uuid) }}{% else %}{{ url_for('web.tests_new') }}{% endif %}">
@@ -292,6 +361,8 @@
             <li><strong>Номер задания:</strong> каждая задача начинается с новой строки вида <code>(№1) Текст вопроса</code> или <code>(#1) Текст вопроса</code>. Цифра — это номер вопроса (1, 2, 3 и т.д.).</li>
             <li><strong>Текст вопроса:</strong> можно писать в одной или нескольких следующих строках — до тех пор, пока не начнутся варианты ответа.</li>
             <li><strong>Варианты ответа:</strong> обязательно 4 строки подряд с метками <code>(A)</code>, <code>(B)</code>, <code>(C)</code>, <code>(D)</code>.</li>
+            <li><strong>Каждый новый вариант — с новой строки:</strong> не пишите <code>(A)... (B)...</code> в одной строке, иначе структура может распознаться неверно.</li>
+            <li><strong>Как будет в PDF:</strong> варианты автоматически раскладываются в одну строку, по два в строке или по одному в строке — в зависимости от длины текста.</li>
             <li><strong>Правильный ответ:</strong> у правильного варианта поставьте звёздочку сразу после буквы, например <code>(C*) правильный вариант</code>. Звёздочка должна быть только у одного варианта.</li>
           </ul>
           <strong>Пример</strong>
@@ -457,6 +528,97 @@
         .replace(/"/g, '&quot;');
     }
 
+    function stripStructPrefixHtml(src, pattern) {
+      var text = String(src || '');
+      if (!text.trim()) return '';
+      var host = document.createElement('div');
+      host.innerHTML = text;
+      var rx = new RegExp(pattern, 'i');
+
+      function walk(node) {
+        for (var i = 0; i < node.childNodes.length; i += 1) {
+          var ch = node.childNodes[i];
+          if (ch.nodeType === Node.TEXT_NODE) {
+            var val = ch.nodeValue || '';
+            var next = val.replace(rx, '');
+            if (next !== val) {
+              ch.nodeValue = next;
+              return true;
+            }
+            if (val.trim()) return true;
+          } else if (ch.nodeType === Node.ELEMENT_NODE) {
+            if (walk(ch)) return true;
+          }
+        }
+        return false;
+      }
+      walk(host);
+      return host.innerHTML;
+    }
+
+    function pdfQuestionHtml(fragment) {
+      return stripStructPrefixHtml(
+        fragment,
+        '^\\s*(?:\\(\\s*)?(?:№\\s*\\d+|#\\s*\\d+)(?:\\s*\\))?\\s*[.)\\-:]?\\s*'
+      );
+    }
+
+    function pdfOptionHtml(fragment) {
+      return stripStructPrefixHtml(
+        fragment,
+        '^\\s*(?:\\(\\s*)?[ABCD](?:\\s*\\*)?(?:\\s*\\))?\\s*[.)\\-:]?\\s*'
+      );
+    }
+
+    function plainLenFromHtml(fragment) {
+      var host = document.createElement('div');
+      host.innerHTML = String(fragment || '');
+      var txt = (host.textContent || '').replace(/\s+/g, ' ').trim();
+      return txt.length;
+    }
+
+    function pickOptionsLayout(options) {
+      var lens = options.map(function (o) { return plainLenFromHtml(o.bodyHtml); });
+      var total = lens.reduce(function (acc, n) { return acc + n; }, 0);
+      var maxLen = lens.length ? Math.max.apply(null, lens) : 0;
+      if (maxLen <= 24 && total <= 84) return 4;
+      if (maxLen <= 62 && total <= 220) return 2;
+      return 1;
+    }
+
+    function renderPdfLikePreview(title, parsed) {
+      var out = '';
+      out += '<div class="pdf-preview">';
+      if (title) {
+        out += '<h2 class="pdf-preview-title">' + escapeHtml(title) + '</h2>';
+      }
+      parsed.forEach(function (q) {
+        out += '<div class="pdf-question-block">';
+        out += '<div class="pdf-question-row">';
+        out += '<div class="pdf-q-num">' + q.qnum + '.</div>';
+        out += '<div class="pdf-q-text ql-editor ql-snow">' + pdfQuestionHtml(q.q) + '</div>';
+        out += '</div>';
+        var opts = [
+          { letter: 'A', bodyHtml: pdfOptionHtml(q.opts.A) },
+          { letter: 'B', bodyHtml: pdfOptionHtml(q.opts.B) },
+          { letter: 'C', bodyHtml: pdfOptionHtml(q.opts.C) },
+          { letter: 'D', bodyHtml: pdfOptionHtml(q.opts.D) },
+        ];
+        var cols = pickOptionsLayout(opts);
+        out += '<div class="pdf-options-grid cols-' + cols + '">';
+        opts.forEach(function (o) {
+          out += '<div class="pdf-option-row">';
+          out += '<div class="pdf-o-num">' + o.letter + ')</div>';
+          out += '<div class="pdf-o-text ql-editor ql-snow option-line">' + o.bodyHtml + '</div>';
+          out += '</div>';
+        });
+        out += '</div>';
+        out += '</div>';
+      });
+      out += '</div>';
+      return out;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
       if (window.ImageResize && window.Quill && !Quill.imports['modules/imageResize']) {
         Quill.register('modules/imageResize', window.ImageResize);
@@ -526,8 +688,10 @@
       var html = '';
       var parserState = 'Ошибка структуры';
       var questionCount = 0;
+      var parsedForPreview = null;
       try {
         var parsed = parseBodyClient(plain);
+        parsedForPreview = parsed;
         questionCount = parsed.length;
         parserState = 'Структура корректна';
         parserClass = 'success';
@@ -542,10 +706,14 @@
       html += '</div>';
       html += '<div class="preview-grid">';
       html += '<div id="preview-rich"><div class="ql-editor ql-snow">';
-      if (title) {
-        html += '<h2 style="margin:0 0 12px 0;">' + escapeHtml(title) + '</h2>';
+      if (parsedForPreview) {
+        html += renderPdfLikePreview(title, parsedForPreview);
+      } else {
+        if (title) {
+          html += '<h2 style="margin:0 0 12px 0;">' + escapeHtml(title) + '</h2>';
+        }
+        html += quillInst.root.innerHTML;
       }
-      html += quillInst.root.innerHTML;
       html += '</div></div>';
       html += '<div id="preview-plain-wrap">';
       html += '<strong>Нормализованный текст для парсинга</strong>';

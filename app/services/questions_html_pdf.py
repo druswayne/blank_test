@@ -87,12 +87,12 @@ _QUILL_PRINT_CSS = """
 html, body { margin: 0; padding: 0; }
 body {
   font-size: 11pt;
-  line-height: 1;
+  line-height: 0.92;
   color: #111;
 }
-.page-header { margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 8px; }
+.page-header { margin-bottom: 8px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
 .page-header h1 { font-size: 17pt; margin: 0 0 4px 0; font-weight: bold; }
-.question-block { border: 1px solid #333; padding: 8px 10px; margin: 10px 0; page-break-inside: avoid; }
+.question-block { border: 1px solid #333; padding: 5px 7px; margin: 2px 0; page-break-inside: avoid; }
 /* Одна внешняя рамка на вопрос: у xhtml2pdf таблицы иначе дают границы, чем в Chromium */
 .question-block table, .question-block td, .question-block th {
   border: none !important;
@@ -101,7 +101,7 @@ body {
 }
 .ql-editor { box-sizing: border-box; outline: none; }
 .ql-editor p, .ql-editor ol, .ql-editor ul, .ql-editor pre, .ql-editor blockquote,
-.ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor h4, .ql-editor h5, .ql-editor h6 { margin: 0 0 4px 0; }
+.ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor h4, .ql-editor h5, .ql-editor h6 { margin: 0 0 1px 0; line-height: 0.92; }
 .ql-editor h1 { font-size: 1.8em; font-weight: bold; }
 .ql-editor h2 { font-size: 1.6em; font-weight: bold; }
 .ql-editor h3 { font-size: 1.4em; font-weight: bold; }
@@ -138,7 +138,7 @@ body {
 .ql-editor .ql-indent-9 { padding-left: 27em; }
 .ql-editor .ql-font-serif { font-family: Georgia, "Times New Roman", serif !important; }
 .ql-editor .ql-font-monospace { font-family: Consolas, "Liberation Mono", monospace !important; }
-.option-line { font-size: 10.5pt; }
+.option-line { font-size: 10.5pt; line-height: 0.92; }
 """
 
 
@@ -204,6 +204,33 @@ def _pdf_option_html(fragment: str | None) -> str:
         fragment,
         r"^\s*(?:\(\s*)?[ABCD](?:\s*\*)?(?:\s*\))?\s*[.)\-:]?\s*",
     )
+
+
+def _plain_text_len_from_html(fragment: str | None) -> int:
+    """Грубая оценка длины текста для выбора компактной раскладки вариантов."""
+    cleaned = _sanitize_user_html(fragment)
+    text = BeautifulSoup(cleaned, "html.parser").get_text(" ", strip=True)
+    return len(re.sub(r"\s+", " ", text).strip())
+
+
+def _pick_options_layout(option_htmls: list[str | None]) -> int:
+    """
+    Возвращает число колонок для вариантов:
+    - 4: в одну строку;
+    - 2: по два варианта в строке;
+    - 1: каждый вариант с новой строки.
+    """
+    lengths = [_plain_text_len_from_html(x) for x in option_htmls]
+    total = sum(lengths)
+    max_len = max(lengths) if lengths else 0
+
+    # Короткие варианты: пробуем уложить в одну строку.
+    if max_len <= 24 and total <= 84:
+        return 4
+    # Средние варианты: две колонки обычно читаемы и влезают.
+    if max_len <= 62 and total <= 220:
+        return 2
+    return 1
 
 
 def _qr_png_data_uri(qr_payload: str) -> str:
@@ -278,7 +305,7 @@ def build_questions_print_html(*, blank: TestBlank, qr_payload: str) -> str:
         '<div class="page-header">',
         '<table style="width:100%;border-collapse:collapse"><tr>',
         f'<td style="vertical-align:top;padding-right:8px"><h1 style="font-size:{title_font_size}pt">{title_html}</h1>',
-        '<p style="font-size:9pt;margin:6px 0 0 0;color:#444">Для ответов используйте отдельный бланк A6 с QR-кодом.</p></td>',
+        '<p style="font-size:9pt;margin:3px 0 0 0;color:#444">Для ответов используйте отдельный бланк A6 с QR-кодом.</p></td>',
         f'<td style="vertical-align:top;text-align:right;width:84px"><img src="{qr_uri}" width="76" height="76" alt="QR"/></td>',
         "</tr></table></div>",
     ]
@@ -290,17 +317,47 @@ def build_questions_print_html(*, blank: TestBlank, qr_payload: str) -> str:
         parts.append('<td style="vertical-align:top">')
         parts.append(f'<div class="ql-editor ql-snow">{_pdf_question_html(q.question_text)}</div>')
         parts.append("</td></tr></table>")
-        for letter, html in (
+        options = [
             ("A", q.option_a),
             ("B", q.option_b),
             ("C", q.option_c),
             ("D", q.option_d),
-        ):
-            parts.append('<table style="width:100%;border-collapse:collapse;margin-top:4px"><tr>')
-            parts.append(f'<td style="vertical-align:top;width:32px;font-weight:bold">{letter})</td>')
-            parts.append('<td style="vertical-align:top">')
-            parts.append(f'<div class="ql-editor ql-snow option-line">{_pdf_option_html(html)}</div>')
-            parts.append("</td></tr></table>")
+        ]
+        option_htmls = [x[1] for x in options]
+        layout_cols = _pick_options_layout(option_htmls)
+
+        if layout_cols == 4:
+            parts.append('<table style="width:100%;border-collapse:collapse;margin-top:1px;table-layout:fixed"><tr>')
+            for letter, html in options:
+                parts.append('<td style="vertical-align:top;width:25%;padding-right:5px">')
+                parts.append('<table style="width:100%;border-collapse:collapse;margin:0"><tr>')
+                parts.append(f'<td style="vertical-align:top;width:18px;font-weight:bold">{letter})</td>')
+                parts.append('<td style="vertical-align:top">')
+                parts.append(f'<div class="ql-editor ql-snow option-line">{_pdf_option_html(html)}</div>')
+                parts.append("</td></tr></table>")
+                parts.append("</td>")
+            parts.append("</tr></table>")
+        elif layout_cols == 2:
+            parts.append('<table style="width:100%;border-collapse:collapse;margin-top:1px;table-layout:fixed">')
+            for idx in range(0, 4, 2):
+                parts.append("<tr>")
+                for letter, html in options[idx:idx + 2]:
+                    parts.append('<td style="vertical-align:top;width:50%;padding-right:6px">')
+                    parts.append('<table style="width:100%;border-collapse:collapse;margin:0"><tr>')
+                    parts.append(f'<td style="vertical-align:top;width:20px;font-weight:bold">{letter})</td>')
+                    parts.append('<td style="vertical-align:top">')
+                    parts.append(f'<div class="ql-editor ql-snow option-line">{_pdf_option_html(html)}</div>')
+                    parts.append("</td></tr></table>")
+                    parts.append("</td>")
+                parts.append("</tr>")
+            parts.append("</table>")
+        else:
+            for letter, html in options:
+                parts.append('<table style="width:100%;border-collapse:collapse;margin-top:1px"><tr>')
+                parts.append(f'<td style="vertical-align:top;width:32px;font-weight:bold">{letter})</td>')
+                parts.append('<td style="vertical-align:top">')
+                parts.append(f'<div class="ql-editor ql-snow option-line">{_pdf_option_html(html)}</div>')
+                parts.append("</td></tr></table>")
         parts.append("</div>")
 
     parts.append("</body></html>")
