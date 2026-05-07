@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block title %}QuizOrbit — создавайте и проверяйте тесты{% endblock %}
+{% block meta_description %}QuizOrbit - сервис для создания тестов, проверки бланков по фото и быстрой аналитики результатов обучения.{% endblock %}
+{% block meta_keywords %}создание тестов, онлайн тестирование, проверка бланков, аналитика тестов, QuizOrbit{% endblock %}
+{% block og_description %}Создавайте тесты, проверяйте бланки по фото и сразу получайте аналитику результатов в QuizOrbit.{% endblock %}
+{% block twitter_title %}QuizOrbit - платформа для тестирования{% endblock %}
+{% block twitter_description %}Создание тестов, проверка бланков по фото и аналитика результатов в одном сервисе.{% endblock %}
 {% block head %}
   <style>
     @media (max-width: 720px) {
@@ -12,6 +17,20 @@
       }
     }
   </style>
+{% endblock %}
+{% block structured_data %}
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "QuizOrbit",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web, Android",
+      "url": "{{ url_for('web.index', _external=True) }}",
+      "description": "Платформа для создания тестов, проверки бланков по фото и анализа результатов.",
+      "inLanguage": "ru"
+    }
+  </script>
 {% endblock %}
 {% block content %}
   <section class="card reveal" style="padding:30px; margin-top:6px; background:linear-gradient(135deg,#23489a 0%,#2f3b8a 44%,#5336a4 100%); color:#fff; position:relative; overflow:hidden;">

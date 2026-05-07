@@ -3,6 +3,45 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="{% block meta_description %}QuizOrbit - платформа для создания, прохождения и анализа онлайн-тестов.{% endblock %}" />
+    <meta name="keywords" content="{% block meta_keywords %}онлайн тесты, создание тестов, обучение, проверка знаний, QuizOrbit{% endblock %}" />
+    <meta name="robots" content="{% block meta_robots %}index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1{% endblock %}" />
+    <meta name="author" content="QuizOrbit" />
+    <meta name="theme-color" content="#070b17" />
+    <link rel="canonical" href="{% block canonical_url %}{{ request.base_url }}{% endblock %}" />
+
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:site_name" content="QuizOrbit" />
+    <meta property="og:title" content="{% block og_title %}{{ self.title()|striptags }}{% endblock %}" />
+    <meta property="og:description" content="{% block og_description %}QuizOrbit - удобная платформа для тестирования и обучения.{% endblock %}" />
+    <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}" />
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='icon.png', _external=True) }}{% endblock %}" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{% block twitter_title %}QuizOrbit{% endblock %}" />
+    <meta name="twitter:description" content="{% block twitter_description %}Создавайте и проходите тесты онлайн в QuizOrbit.{% endblock %}" />
+    <meta name="twitter:image" content="{% block twitter_image %}{{ url_for('static', filename='icon.png', _external=True) }}{% endblock %}" />
+    {% block structured_data %}
+      <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "QuizOrbit",
+          "url": "{{ request.url_root.rstrip('/') }}",
+          "inLanguage": "ru",
+          "publisher": {
+            "@type": "Organization",
+            "name": "QuizOrbit",
+            "url": "{{ request.url_root.rstrip('/') }}",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "{{ url_for('static', filename='icon.png', _external=True) }}"
+            }
+          }
+        }
+      </script>
+    {% endblock %}
     <title>{% block title %}QuizOrbit{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}" />
     {% block head %}{% endblock %}

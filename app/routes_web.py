@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for, Response
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import func
 
@@ -136,6 +136,66 @@ def _ratings_for_blank_ids(blank_ids: list[int], user_id: int) -> tuple[dict[int
 @web_bp.route("/", methods=["GET"])
 def index():
     return render_template("home.html")
+
+
+@web_bp.route("/robots.txt", methods=["GET"])
+def robots_txt():
+    # Явно разрешаем индексацию публичной части сайта и даем ссылку на карту.
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /api/",
+        "Disallow: /dashboard",
+        "Disallow: /tests",
+        "Disallow: /tests/",
+        "",
+        f"Sitemap: {url_for('web.sitemap_xml', _external=True)}",
+    ]
+    return Response("\n".join(lines) + "\n", mimetype="text/plain; charset=utf-8")
+
+
+@web_bp.route("/sitemap.xml", methods=["GET"])
+def sitemap_xml():
+    pages = [
+        {
+            "loc": url_for("web.index", _external=True),
+            "changefreq": "weekly",
+            "priority": "1.0",
+        },
+        {
+            "loc": url_for("web.login", _external=True),
+            "changefreq": "monthly",
+            "priority": "0.4",
+        },
+        {
+            "loc": url_for("web.register", _external=True),
+            "changefreq": "monthly",
+            "priority": "0.5",
+        },
+    ]
+    url_items = []
+    for page in pages:
+        url_items.append(
+            "\n".join(
+                [
+                    "  <url>",
+                    f"    <loc>{page['loc']}</loc>",
+                    f"    <changefreq>{page['changefreq']}</changefreq>",
+                    f"    <priority>{page['priority']}</priority>",
+                    "  </url>",
+                ]
+            )
+        )
+    xml = "\n".join(
+        [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+            *url_items,
+            "</urlset>",
+            "",
+        ]
+    )
+    return Response(xml, mimetype="application/xml; charset=utf-8")
 
 
 @web_bp.route("/register", methods=["GET", "POST"])
