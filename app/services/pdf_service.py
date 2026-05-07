@@ -259,7 +259,13 @@ def generate_answers_pdf_a6(
 
         # Пустые квадраты под отметки учителя (верно/неверно); над каждым — номер вопроса по центру.
         teacher_top_mm = y_cursor_mm + 0.5
-        usable_w_mm = max(12.0, (text_right_mm - m))
+        teacher_label = "Для учителя:"
+        teacher_label_font_pt = 6.6
+        teacher_label_gap_mm = 1.1
+        c.setFont(font_name, teacher_label_font_pt)
+        teacher_label_w_mm = _string_width(teacher_label, font_name, teacher_label_font_pt) / mm
+        teacher_squares_left_mm = m + teacher_label_w_mm + teacher_label_gap_mm
+        usable_w_mm = max(12.0, (text_right_mm - teacher_squares_left_mm))
         square_gap_mm = 1.0 if n <= 24 else 0.65
         raw_sq = (usable_w_mm - max(0, n - 1) * square_gap_mm) / max(1, n)
         teacher_square_mm = max(2.3, min(float(A6M.checkbox_outer_mm), raw_sq))
@@ -268,10 +274,14 @@ def generate_answers_pdf_a6(
         square_top_mm = teacher_top_mm + num_row_h_mm + gap_num_sq_mm
         teacher_num_font_pt = 5.5
         c.setFont(font_name, teacher_num_font_pt)
+        teacher_label_baseline_mm = teacher_top_mm + num_row_h_mm - 0.9
+        c.setFont(font_name, teacher_label_font_pt)
+        c.drawString(m * mm, (page_h_mm - teacher_label_baseline_mm) * mm, teacher_label)
+        c.setFont(font_name, teacher_num_font_pt)
         num_baseline_from_top_mm = teacher_top_mm + num_row_h_mm - 0.9
         y_num_pt = (page_h_mm - num_baseline_from_top_mm) * mm
         for idx in range(n):
-            left_mm = m + idx * (teacher_square_mm + square_gap_mm)
+            left_mm = teacher_squares_left_mm + idx * (teacher_square_mm + square_gap_mm)
             cx_pt = (left_mm + teacher_square_mm / 2.0) * mm
             c.drawCentredString(cx_pt, y_num_pt, str(idx + 1))
             x_sq = left_mm * mm

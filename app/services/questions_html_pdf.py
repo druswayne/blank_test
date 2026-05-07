@@ -317,6 +317,7 @@ def build_questions_print_html(*, blank: TestBlank, qr_payload: str) -> str:
         parts.append('<td style="vertical-align:top">')
         parts.append(f'<div class="ql-editor ql-snow">{_pdf_question_html(q.question_text)}</div>')
         parts.append("</td></tr></table>")
+        parts.append('<div style="height:0.9em"></div>')
         options = [
             ("A", q.option_a),
             ("B", q.option_b),
