@@ -274,7 +274,9 @@ def generate_answers_pdf_a6(
         square_top_mm = teacher_top_mm + num_row_h_mm + gap_num_sq_mm
         teacher_num_font_pt = 5.5
         c.setFont(font_name, teacher_num_font_pt)
-        teacher_label_baseline_mm = teacher_top_mm + num_row_h_mm - 0.9
+        # Базовая линия подписи так, чтобы текст был по центру квадратиков по вертикали.
+        teacher_label_center_mm = square_top_mm + teacher_square_mm / 2.0
+        teacher_label_baseline_mm = teacher_label_center_mm + (teacher_label_font_pt * 0.36 / mm)
         c.setFont(font_name, teacher_label_font_pt)
         c.drawString(m * mm, (page_h_mm - teacher_label_baseline_mm) * mm, teacher_label)
         c.setFont(font_name, teacher_num_font_pt)
