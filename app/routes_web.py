@@ -928,7 +928,6 @@ def _ensure_both_pdfs(blank: TestBlank) -> None:
 
 
 @web_bp.route("/blanks/<blank_uuid>/pdf/questions", methods=["GET"])
-@login_required
 def blank_pdf_questions(blank_uuid: str):
     blank = _get_accessible_blank(blank_uuid)
     if not blank:
@@ -945,7 +944,6 @@ def blank_pdf_questions(blank_uuid: str):
 
 
 @web_bp.route("/blanks/<blank_uuid>/pdf/answers", methods=["GET"])
-@login_required
 def blank_pdf_answers(blank_uuid: str):
     blank = _get_accessible_blank(blank_uuid)
     if not blank:
@@ -962,7 +960,6 @@ def blank_pdf_answers(blank_uuid: str):
 
 
 @web_bp.route("/blanks/<blank_uuid>/pdf", methods=["GET"])
-@login_required
 def blank_pdf_legacy(blank_uuid: str):
     """Раньше был один файл; перенаправляем на вопросы A4."""
     return redirect(url_for("web.blank_pdf_questions", blank_uuid=blank_uuid))
