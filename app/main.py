@@ -84,6 +84,13 @@ def create_app() -> Flask:
     )
     Path(app.config["PDF_DIR"]).mkdir(parents=True, exist_ok=True)
 
+    # Timeweb Cloud AI (генерация тестов): https://agent.timeweb.cloud/docs
+    app.config["TIMEWEB_AI_BEARER_TOKEN"] = os.getenv("TIMEWEB_AI_BEARER_TOKEN", "").strip()
+    app.config["TIMEWEB_AI_AGENT_ACCESS_ID"] = os.getenv(
+        "TIMEWEB_AI_AGENT_ACCESS_ID", ""
+    ).strip()
+    app.config["TIMEWEB_AI_PROXY_SOURCE"] = os.getenv("TIMEWEB_AI_PROXY_SOURCE", "")
+
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "web.login"

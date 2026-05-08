@@ -1,12 +1,30 @@
 from pathlib import Path
 import re
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for, Response
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+    Response,
+)
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import func
 
 from .models import TestBlank, TestBlankRating, TestQuestion, TestQuestionStats, User, db, login_manager
 from .services.pdf_service import generate_blank_pdfs
+from .services.timeweb_ai_service import (
+    TimewebAIError,
+    chat_completion,
+    extract_message_content,
+    strip_markdown_fences,
+)
 from .services.test_body_parser import (
     blank_to_editor_html,
     looks_like_quill_html,
@@ -642,6 +660,55 @@ def tests_new():
         form_grade=None,
         form_subject="",
     )
+
+
+@web_bp.route("/tests/ai-generate", methods=["POST"])
+@login_required
+def tests_ai_generate():
+    if not request.is_json:
+        return jsonify(ok=False, error="Ожидался JSON (Content-Type: application/json)"), 400
+    payload = request.get_json(silent=True) or {}
+    user_prompt = (payload.get("prompt") or "").strip()
+    if not user_prompt:
+        return jsonify(ok=False, error="Введите тему или материал для генерации теста"), 400
+    if len(user_prompt) > 12000:
+        return jsonify(ok=False, error="Текст запроса слишком длинный (максимум 12000 символов)"), 400
+
+    token = (current_app.config.get("TIMEWEB_AI_BEARER_TOKEN") or "").strip()
+    agent_id = (current_app.config.get("TIMEWEB_AI_AGENT_ACCESS_ID") or "").strip()
+    if not token or not agent_id:
+        return (
+            jsonify(
+                ok=False,
+                error=(
+                    "Генерация через ИИ не настроена. Задайте переменные окружения "
+                    "TIMEWEB_AI_BEARER_TOKEN и TIMEWEB_AI_AGENT_ACCESS_ID "
+                    "(см. документацию Timeweb Cloud AI)."
+                ),
+            ),
+            503,
+        )
+
+    proxy_source = current_app.config.get("TIMEWEB_AI_PROXY_SOURCE")
+    if proxy_source is None:
+        proxy_source = ""
+
+    try:
+        raw = chat_completion(
+            agent_access_id=agent_id,
+            bearer_token=token,
+            x_proxy_source=str(proxy_source),
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+    except TimewebAIError as e:
+        return jsonify(ok=False, error=str(e)), 502
+
+    content = extract_message_content(raw)
+    if not content:
+        return jsonify(ok=False, error="Пустой ответ агента"), 502
+
+    text = strip_markdown_fences(content)
+    return jsonify(ok=True, text=text)
 
 
 @web_bp.route("/tests/<blank_uuid>/edit", methods=["GET", "POST"])

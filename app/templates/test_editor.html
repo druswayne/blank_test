@@ -306,6 +306,241 @@
     @media (max-width: 900px) {
       .preview-grid { grid-template-columns: 1fr; }
     }
+    #ai-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.62);
+      z-index: 50;
+      backdrop-filter: blur(3px);
+    }
+    #ai-modal {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 60;
+      width: min(700px, 94vw);
+      max-height: 88vh;
+      overflow: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      background: linear-gradient(180deg, rgba(26, 38, 66, 0.98), rgba(15, 24, 44, 0.99));
+      border-radius: 16px;
+      border: 1px solid rgba(172, 191, 255, 0.3);
+      box-shadow: 0 28px 70px rgba(2, 8, 30, 0.65);
+      padding: 18px;
+      color: #dce7ff;
+    }
+    #ai-modal::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+    /* Пока идёт генерация — без полосы прокрутки у всего окна (оверлей закрывает контент) */
+    #ai-modal.ai-is-busy {
+      overflow: hidden;
+    }
+    #ai-modal .ai-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    #ai-modal label[for="ai-prompt"] {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    #ai-prompt {
+      width: 100%;
+      min-height: 160px;
+      box-sizing: border-box;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(172, 191, 255, 0.35);
+      background: rgba(8, 14, 29, 0.72);
+      color: #e8eeff;
+      font-size: 15px;
+      line-height: 1.45;
+      resize: vertical;
+      font-family: inherit;
+    }
+    #ai-prompt::placeholder {
+      color: rgba(200, 214, 255, 0.45);
+    }
+    #ai-error {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(127, 29, 29, 0.35);
+      border: 1px solid rgba(248, 113, 113, 0.4);
+      color: #fecaca;
+      font-size: 14px;
+      display: none;
+    }
+    #ai-error:not(:empty) {
+      display: block;
+    }
+    #ai-modal .ai-actions {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    #ai-modal .ai-modal-hint {
+      margin: 0 0 14px 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #c8d8f8;
+    }
+    #ai-modal .ai-modal-hint p {
+      margin: 0 0 10px 0;
+    }
+    #ai-modal .ai-modal-hint ul {
+      margin: 0 0 12px 0;
+      padding-left: 1.35rem;
+    }
+    #ai-modal .ai-modal-hint li {
+      margin: 4px 0;
+    }
+    #ai-modal .ai-modal-hint .ai-modal-example-title {
+      font-weight: 700;
+      color: #e8eeff;
+      margin: 12px 0 6px 0;
+    }
+    #ai-modal .ai-modal-example {
+      margin: 0;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(8, 14, 29, 0.72);
+      border: 1px solid rgba(172, 191, 255, 0.28);
+      font-size: 13px;
+      line-height: 1.5;
+      color: #b8c9f6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .btn-ai-generate {
+      padding: 12px 22px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: none;
+      background: linear-gradient(135deg, #4f8dff 0%, #7b5cff 52%, #6366f1 100%);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      box-shadow:
+        0 4px 20px rgba(91, 139, 255, 0.5),
+        0 0 0 1px rgba(167, 139, 250, 0.35) inset;
+      text-shadow: 0 1px 0 rgba(15, 23, 42, 0.25);
+      flex-shrink: 0;
+    }
+    .btn-ai-generate:hover {
+      filter: brightness(1.1);
+      box-shadow:
+        0 6px 26px rgba(99, 102, 241, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.22) inset;
+    }
+    .btn-ai-generate:focus-visible {
+      outline: 2px solid #93c5fd;
+      outline-offset: 3px;
+    }
+    .btn-ai-generate .btn-ai-badge {
+      display: inline-block;
+      margin-right: 8px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      vertical-align: middle;
+      background: rgba(255, 255, 255, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+    }
+    #ai-modal-main {
+      position: relative;
+    }
+    #ai-generation-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 24px 20px;
+      text-align: center;
+      border-radius: 12px;
+      background: rgba(11, 18, 35, 0.92);
+      border: 1px solid rgba(124, 156, 255, 0.35);
+      backdrop-filter: blur(8px);
+    }
+    #ai-generation-overlay.is-visible {
+      display: flex;
+    }
+    .ai-gen-pulse {
+      position: relative;
+      width: 64px;
+      height: 64px;
+    }
+    .ai-gen-pulse::before,
+    .ai-gen-pulse::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      border-top-color: #7b8cff;
+      border-right-color: #a78bfa;
+      animation: ai-gen-spin 1.1s linear infinite;
+    }
+    .ai-gen-pulse::after {
+      inset: 10px;
+      border-top-color: #5b8dff;
+      border-right-color: transparent;
+      animation-duration: 1.6s;
+      animation-direction: reverse;
+    }
+    @keyframes ai-gen-spin {
+      to { transform: rotate(360deg); }
+    }
+    .ai-gen-dots {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .ai-gen-dots span {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #93c5fd, #a78bfa);
+      animation: ai-dot-pulse 1.35s ease-in-out infinite both;
+      box-shadow: 0 0 12px rgba(147, 197, 253, 0.45);
+    }
+    .ai-gen-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .ai-gen-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes ai-dot-pulse {
+      0%, 100% { transform: translateY(0) scale(0.85); opacity: 0.45; }
+      50% { transform: translateY(-6px) scale(1); opacity: 1; }
+    }
+    .ai-gen-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+      color: #eef3ff;
+      letter-spacing: 0.02em;
+    }
+    .ai-gen-hint {
+      margin: 0;
+      max-width: 36rem;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #b8c9f6;
+    }
   </style>
 {% endblock %}
 
@@ -352,7 +587,14 @@
     </div>
 
     <div class="box" style="margin-top:16px;">
-      <label for="editor">Текст теста</label>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <label for="editor" style="margin:0; font-weight:700; font-size:1.02rem;">Текст теста</label>
+        {% if mode == 'create' %}
+          <button type="button" class="btn btn-ai-generate" id="btn-ai-generate">
+            <span class="btn-ai-badge">ИИ</span>Сгенерировать через ИИ
+          </button>
+        {% endif %}
+      </div>
       <details class="format-help help-toggle" style="margin-top:14px;">
         <summary><span class="help-summary-badge">Важно</span>Подсказка по структуре и примеру теста</summary>
         <div class="help-body">
@@ -392,6 +634,48 @@
     </div>
   </form>
 
+  {% if mode == 'create' %}
+  <div id="ai-backdrop"></div>
+  <div id="ai-modal" role="dialog" aria-modal="true" aria-labelledby="ai-modal-title" aria-busy="false">
+    <div class="ai-hdr">
+      <strong id="ai-modal-title">Генерация теста через ИИ</strong>
+      <button type="button" class="btn secondary" id="btn-ai-close" style="padding:6px 10px;">Закрыть</button>
+    </div>
+    <div id="ai-modal-main">
+    <div class="ai-modal-hint">
+      <p>Для получения наиболее качественного теста укажите:</p>
+      <ul>
+        <li>предмет;</li>
+        <li>класс;</li>
+        <li>тему;</li>
+        <li>количество заданий;</li>
+        <li>уровень сложности;</li>
+        <li>тип заданий (теория, вычисления, определения, задачи и т.д.);</li>
+        <li>материал, на основе которого нужно составить тест.</li>
+      </ul>
+      <p>Чем подробнее описание, тем точнее и качественнее получится результат.</p>
+      <p class="ai-modal-example-title">Пример запроса:</p>
+      <pre class="ai-modal-example" role="note">«Составь тест по математике для 6 класса по теме „Дроби“.
+10 заданий средней сложности.
+Нужны примеры на сравнение дробей, сложение и нахождение части от числа.»</pre>
+    </div>
+    <label for="ai-prompt">Материал или задание для генерации</label>
+    <textarea id="ai-prompt" placeholder="Опишите предмет, класс, тему, число заданий, сложность и типы вопросов — или вставьте фрагмент учебника…"></textarea>
+    <div id="ai-error"></div>
+    <div class="ai-actions">
+      <button type="button" class="btn secondary" id="btn-ai-cancel">Отмена</button>
+      <button type="button" class="btn" id="btn-ai-submit">Сгенерировать</button>
+    </div>
+    <div id="ai-generation-overlay" aria-hidden="true">
+      <div class="ai-gen-pulse" aria-hidden="true"></div>
+      <div class="ai-gen-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p class="ai-gen-title">Идёт генерация теста…</p>
+      <p class="ai-gen-hint">Перед сохранением обязательно перепроверьте формулировки заданий и верность отмеченных ответов — ИИ может ошибаться или неверно указать верный вариант.</p>
+    </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div id="preview-backdrop"></div>
   <div id="preview-modal" role="dialog" aria-modal="true">
     <div class="hdr">
@@ -402,6 +686,9 @@
   </div>
 
   <script type="application/json" id="initial-plain">{{ body_text | tojson }}</script>
+  {% if mode == 'create' %}
+  <script type="application/json" id="ai-generate-url">{{ url_for('web.tests_ai_generate') | tojson }}</script>
+  {% endif %}
   <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
   <script src="https://unpkg.com/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
   <script>
@@ -680,6 +967,130 @@
       });
       document.getElementById('btn-preview-close').addEventListener('click', closePreview);
       document.getElementById('preview-backdrop').addEventListener('click', closePreview);
+
+      var aiBackdrop = document.getElementById('ai-backdrop');
+      var aiModal = document.getElementById('ai-modal');
+      var btnAi = document.getElementById('btn-ai-generate');
+      var btnAiClose = document.getElementById('btn-ai-close');
+      var btnAiCancel = document.getElementById('btn-ai-cancel');
+      var btnAiSubmit = document.getElementById('btn-ai-submit');
+      var aiPrompt = document.getElementById('ai-prompt');
+      var aiError = document.getElementById('ai-error');
+      var aiUrlEl = document.getElementById('ai-generate-url');
+      var aiOverlay = document.getElementById('ai-generation-overlay');
+      var aiGenAbort = null;
+
+      function setAiGenerating(on) {
+        if (!aiModal || !aiOverlay) return;
+        if (on) {
+          aiModal.classList.add('ai-is-busy');
+          aiModal.setAttribute('aria-busy', 'true');
+          aiOverlay.classList.add('is-visible');
+          aiOverlay.setAttribute('aria-hidden', 'false');
+          if (btnAiSubmit) btnAiSubmit.disabled = true;
+          if (btnAiCancel) btnAiCancel.disabled = true;
+          if (aiPrompt) aiPrompt.disabled = true;
+        } else {
+          aiModal.classList.remove('ai-is-busy');
+          aiModal.setAttribute('aria-busy', 'false');
+          aiOverlay.classList.remove('is-visible');
+          aiOverlay.setAttribute('aria-hidden', 'true');
+          if (btnAiSubmit) btnAiSubmit.disabled = false;
+          if (btnAiCancel) btnAiCancel.disabled = false;
+          if (aiPrompt) aiPrompt.disabled = false;
+        }
+      }
+
+      function openAiModal() {
+        if (aiGenAbort) {
+          try { aiGenAbort.abort(); } catch (e) {}
+          aiGenAbort = null;
+        }
+        setAiGenerating(false);
+        if (aiError) aiError.textContent = '';
+        if (aiPrompt) aiPrompt.value = '';
+        if (aiBackdrop) aiBackdrop.style.display = 'block';
+        if (aiModal) aiModal.style.display = 'block';
+        if (aiPrompt) setTimeout(function () { aiPrompt.focus(); }, 50);
+      }
+      function closeAiModal() {
+        if (aiGenAbort) {
+          try { aiGenAbort.abort(); } catch (e) {}
+          aiGenAbort = null;
+        }
+        setAiGenerating(false);
+        if (aiBackdrop) aiBackdrop.style.display = 'none';
+        if (aiModal) aiModal.style.display = 'none';
+      }
+
+      if (btnAi) btnAi.addEventListener('click', openAiModal);
+      if (btnAiClose) btnAiClose.addEventListener('click', closeAiModal);
+      if (btnAiCancel) btnAiCancel.addEventListener('click', closeAiModal);
+      if (aiBackdrop) {
+        aiBackdrop.addEventListener('click', function () {
+          if (aiModal && aiModal.classList.contains('ai-is-busy')) return;
+          closeAiModal();
+        });
+      }
+
+      if (btnAiSubmit && aiUrlEl) {
+        btnAiSubmit.addEventListener('click', function () {
+          var p = (aiPrompt && aiPrompt.value || '').trim();
+          if (!p) {
+            if (aiError) aiError.textContent = 'Введите описание или вставьте текст материала';
+            return;
+          }
+          if (aiError) aiError.textContent = '';
+          var controller = new AbortController();
+          aiGenAbort = controller;
+          setAiGenerating(true);
+          var aiUrl = '';
+          try {
+            aiUrl = JSON.parse(aiUrlEl.textContent || '""');
+          } catch (e) {
+            aiUrl = '';
+          }
+          fetch(aiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ prompt: p }),
+            signal: controller.signal,
+          })
+            .then(function (r) {
+              return r.text().then(function (txt) {
+                var j = null;
+                try {
+                  j = JSON.parse(txt);
+                } catch (e) {
+                  j = null;
+                }
+                return { ok: r.ok, body: j, raw: txt };
+              });
+            })
+            .then(function (res) {
+              if (!res.body || !res.body.ok) {
+                var err =
+                  (res.body && res.body.error) ||
+                  (!res.ok ? 'Ошибка сервера (' + res.raw.slice(0, 120) + ')' : 'Неизвестная ошибка');
+                if (aiError) aiError.textContent = err;
+                return;
+              }
+              var t = res.body.text || '';
+              quill.setText(t);
+              aiGenAbort = null;
+              closeAiModal();
+            })
+            .catch(function (err) {
+              if (err && err.name === 'AbortError') return;
+              if (aiError) aiError.textContent = 'Не удалось выполнить запрос';
+            })
+            .finally(function () {
+              aiGenAbort = null;
+              setAiGenerating(false);
+            });
+        });
+      }
     });
 
     function openPreview(quillInst) {
