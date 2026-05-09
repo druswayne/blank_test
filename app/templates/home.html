@@ -53,16 +53,40 @@
       position: relative;
       z-index: 1;
     }
-    .home-hero-features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 12px;
-      margin-top: 16px;
+    .home-hero-features-wrap {
+      margin-top: 18px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.07);
+      border: none;
+      box-shadow: none;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      animation: home-feature-in 0.45s ease-out 0.06s backwards;
+      width: fit-content;
+      max-width: 100%;
+      box-sizing: border-box;
     }
-    @media (min-width: 960px) {
-      .home-hero-features {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
+    .home-hero-features {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.88);
+      line-height: 1.55;
+    }
+    .home-hero-features li {
+      display: inline;
+      padding: 0;
+    }
+    .home-hero-features li + li::before {
+      content: "·";
+      margin: 0 10px;
+      opacity: 0.42;
+      font-weight: 400;
+      pointer-events: none;
+      user-select: none;
     }
     @keyframes home-feature-in {
       from {
@@ -74,27 +98,36 @@
         transform: translateY(0);
       }
     }
-    .home-hero-features > div {
-      white-space: nowrap;
-      font-size: 15px;
-      padding: 12px 14px;
-      text-align: center;
-      animation: home-feature-in 0.5s ease-out backwards;
-    }
-    .home-hero-features > div:nth-child(1) { animation-delay: 0.08s; }
-    .home-hero-features > div:nth-child(2) { animation-delay: 0.16s; }
-    .home-hero-features > div:nth-child(3) { animation-delay: 0.24s; }
-    .home-hero-features > div:nth-child(4) { animation-delay: 0.32s; }
     .home-hero-cta {
       animation: home-feature-in 0.55s ease-out 0.38s backwards;
     }
+    .home-hero-link-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      color: #e8f0ff !important;
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none !important;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .home-hero-link-chip:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.38);
+      color: #fff !important;
+      text-decoration: none !important;
+    }
     @media (prefers-reduced-motion: reduce) {
       .home-hero-blob,
-      .home-hero-features > div,
+      .home-hero-features-wrap,
       .home-hero-cta {
         animation: none !important;
       }
-      .home-hero-features > div {
+      .home-hero-features-wrap {
         opacity: 1;
         transform: none;
       }
@@ -131,15 +164,18 @@
         Создавайте тесты, проверяйте бланки по фото и сразу получайте аналитику по результатам.
       </p>
       <div style="clear:both;"></div>
-      <div class="home-hero-features">
-        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px;">Запуск теста за минуты</div>
-        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px;">Проверка работ по фото</div>
-        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px;">Моментальная статистика</div>
-        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px;">ИИ-ассистент</div>
+      <div class="home-hero-features-wrap">
+        <ul class="home-hero-features" aria-label="Возможности сервиса">
+          <li>Запуск теста за минуты</li>
+          <li>Проверка работ по фото</li>
+          <li>Моментальная статистика</li>
+          <li>ИИ-ассистент</li>
+        </ul>
       </div>
       <div class="home-hero-cta" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; align-items:center;">
         <a class="btn hover-lift" style="background:#fff; color:#1b2d6f; font-weight:700;" href="{{ url_for('web.register') }}">Начать бесплатно</a>
-        <a href="{{ url_for('web.login') }}" style="color:#e4ebff; font-weight:600;">Уже есть аккаунт</a>
+        <a class="home-hero-link-chip" href="{{ url_for('web.login') }}">Уже есть аккаунт</a>
+        <a class="home-hero-link-chip" href="{{ url_for('web.about') }}">О сервисе подробнее</a>
       </div>
     </div>
   </section>

@@ -103,6 +103,52 @@
         object-fit: contain;
         box-shadow: 0 8px 20px rgba(82, 130, 255, 0.55);
       }
+      .nav-burger {
+        display: none;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        margin: 0;
+        border: 1px solid rgba(172, 191, 255, 0.35);
+        border-radius: 10px;
+        background: rgba(17, 26, 47, 0.95);
+        cursor: pointer;
+        color: var(--text);
+      }
+      .nav-burger:hover {
+        filter: brightness(1.08);
+      }
+      .nav-burger:focus-visible {
+        outline: 2px solid rgba(124, 92, 255, 0.55);
+        outline-offset: 2px;
+      }
+      .nav-burger-lines {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 5px;
+        width: 20px;
+        pointer-events: none;
+      }
+      .nav-burger-lines span {
+        display: block;
+        height: 2px;
+        border-radius: 1px;
+        background: currentColor;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+      .site-header.nav-is-open .nav-burger-lines span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+      }
+      .site-header.nav-is-open .nav-burger-lines span:nth-child(2) {
+        opacity: 0;
+      }
+      .site-header.nav-is-open .nav-burger-lines span:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
+      }
       .nav-actions {
         display: flex;
         gap: 8px;
@@ -271,27 +317,53 @@
         .row { flex-direction: column; }
         .nav-wrap {
           padding: 12px 14px;
-          flex-direction: column;
-          align-items: stretch;
+          flex-wrap: wrap;
+          align-items: center;
           gap: 10px;
         }
         .brand {
           justify-content: flex-start;
+          flex: 1;
+          min-width: 0;
+        }
+        .nav-burger {
+          display: inline-flex;
+          order: 2;
         }
         .nav-actions {
+          order: 3;
           width: 100%;
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 8px;
+          display: none;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+          padding-top: 4px;
+          margin-top: 2px;
+          border-top: 1px solid rgba(172, 191, 255, 0.12);
+        }
+        .site-header.nav-is-open .nav-actions {
+          display: flex;
+        }
+        .nav-order-a {
+          order: 1;
+        }
+        .nav-order-b {
+          order: 2;
+        }
+        .nav-order-apk {
+          order: 3;
+        }
+        .nav-order-about {
+          order: 4;
         }
         .nav-actions .btn {
           width: 100%;
-          min-height: 42px;
+          min-height: 44px;
           text-align: center;
           justify-content: center;
           white-space: nowrap;
-          font-size: 12px;
-          padding: 8px 6px;
+          font-size: 14px;
+          padding: 10px 14px;
         }
         .nav-actions form {
           margin: 0;
@@ -320,16 +392,31 @@
           <img class="brand-dot" src="{{ url_for('static', filename='icon.png') }}" alt="Иконка QuizOrbit" />
           <span>QuizOrbit</span>
         </a>
-        <div class="nav-actions">
-          <a class="btn secondary" href="{{ url_for('static', filename='QuizOrbit.apk') }}" download>Скачать APK</a>
+        <button
+          type="button"
+          class="nav-burger"
+          id="site-nav-burger"
+          aria-expanded="false"
+          aria-controls="site-nav-drawer"
+          aria-label="Открыть меню"
+        >
+          <span class="nav-burger-lines" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+        <div class="nav-actions" id="site-nav-drawer">
+          <a class="btn secondary nav-order-about" href="{{ url_for('web.about') }}">О нас</a>
+          <a class="btn secondary nav-order-apk" href="{{ url_for('static', filename='QuizOrbit.apk') }}" download>Скачать APK</a>
           {% if current_user.is_authenticated %}
-            <a class="btn secondary" href="{{ url_for('web.dashboard') }}">Кабинет</a>
-            <form method="post" action="{{ url_for('web.logout') }}" style="margin:0;">
+            <a class="btn secondary nav-order-a" href="{{ url_for('web.dashboard') }}">Кабинет</a>
+            <form class="nav-order-b" method="post" action="{{ url_for('web.logout') }}" style="margin:0;">
               <button class="btn" type="submit">Выйти</button>
             </form>
           {% else %}
-            <a class="btn secondary" href="{{ url_for('web.login') }}">Войти</a>
-            <a class="btn" href="{{ url_for('web.register') }}">Регистрация</a>
+            <a class="btn secondary nav-order-a" href="{{ url_for('web.login') }}">Войти</a>
+            <a class="btn nav-order-b" href="{{ url_for('web.register') }}">Регистрация</a>
           {% endif %}
         </div>
       </div>
@@ -397,6 +484,52 @@
           rememberConsent();
           hideBanner();
         });
+      })();
+      (function () {
+        var burger = document.getElementById("site-nav-burger");
+        var header = document.querySelector(".site-header");
+        if (!burger || !header) {
+          return;
+        }
+
+        function setOpen(open) {
+          header.classList.toggle("nav-is-open", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Закрыть меню" : "Открыть меню");
+        }
+
+        burger.addEventListener("click", function (e) {
+          e.stopPropagation();
+          setOpen(!header.classList.contains("nav-is-open"));
+        });
+
+        document.addEventListener("click", function (e) {
+          if (header.classList.contains("nav-is-open") && !header.contains(e.target)) {
+            setOpen(false);
+          }
+        });
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && header.classList.contains("nav-is-open")) {
+            setOpen(false);
+          }
+        });
+
+        window.addEventListener("resize", function () {
+          if (window.matchMedia("(min-width: 721px)").matches) {
+            setOpen(false);
+          }
+        });
+
+        var drawer = document.getElementById("site-nav-drawer");
+        if (drawer) {
+          drawer.addEventListener("click", function (e) {
+            var t = e.target;
+            if (t && (t.tagName === "A" || (t.closest && t.closest("a")))) {
+              setOpen(false);
+            }
+          });
+        }
       })();
     </script>
   </body>

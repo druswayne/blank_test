@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}О сервисе QuizOrbit{% endblock %}
+{% block meta_description %}
+QuizOrbit экономит время учителя: готовые материалы для урока, проверка работ по фото и понятная статистика по заданиям — без ручного подсчёта ответов.
+{% endblock %}
+{% block meta_keywords %}QuizOrbit, о сервисе, тесты для школы, проверка работ, экономия времени учителя{% endblock %}
+{% block og_title %}О сервисе QuizOrbit{% endblock %}
+{% block og_description %}
+Меньше рутины на проверке, больше времени на объяснения и поддержку класса — от составления контрольной до отчёта по результатам.
+{% endblock %}
+{% block twitter_title %}О сервисе QuizOrbit{% endblock %}
+{% block twitter_description %}
+Быстрый выпуск контрольных, проверка бланков с телефона и наглядная картина по классу — в одном сервисе.
+{% endblock %}
+{% block canonical_url %}{{ url_for('web.about', _external=True) }}{% endblock %}
+{% block og_url %}{{ url_for('web.about', _external=True) }}{% endblock %}
+{% block head %}
+  <style>
+    .about-page {
+      --about-a: #7dd3fc;
+      --about-b: #fbbf24;
+      --about-c: #f472b6;
+      --about-d: #34d399;
+      --about-e: #a78bfa;
+    }
+    .about-hero {
+      position: relative;
+      overflow: hidden;
+      padding: 32px 26px 30px;
+      margin-top: 6px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background:
+        radial-gradient(520px 240px at 85% 15%, rgba(244, 114, 182, 0.35) 0%, transparent 55%),
+        radial-gradient(420px 200px at 10% 90%, rgba(125, 211, 252, 0.32) 0%, transparent 55%),
+        radial-gradient(380px 180px at 60% 80%, rgba(251, 191, 36, 0.18) 0%, transparent 50%),
+        linear-gradient(135deg, #2d4ab8 0%, #5b21b6 48%, #7c3aed 100%);
+      box-shadow: 0 28px 60px rgba(45, 30, 120, 0.45);
+    }
+    .about-hero::after {
+      content: "";
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      right: -30px;
+      top: -40px;
+      border-radius: 40% 60% 55% 45%;
+      background: rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+    }
+    .about-hero h1 {
+      position: relative;
+      margin: 0 0 10px;
+      font-size: clamp(28px, 4.5vw, 38px);
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      text-shadow: 0 2px 24px rgba(0, 0, 0, 0.2);
+    }
+    .about-hero .about-kicker {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 6px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #0f172a;
+      background: linear-gradient(90deg, var(--about-b), #fde68a);
+      border-radius: 999px;
+      box-shadow: 0 4px 14px rgba(251, 191, 36, 0.45);
+    }
+    .about-hero p.lead {
+      position: relative;
+      margin: 0;
+      max-width: 640px;
+      color: rgba(255, 255, 255, 0.94);
+      font-size: clamp(15px, 2.5vw, 17px);
+      line-height: 1.5;
+    }
+    .about-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+      position: relative;
+    }
+    .about-badge {
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #e8f0ff;
+      background: rgba(15, 23, 42, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+    }
+    .about-section {
+      margin-top: 20px;
+    }
+    .about-section h2 {
+      margin: 0 0 14px;
+      font-size: clamp(1.15rem, 2.5vw, 1.35rem);
+      font-weight: 800;
+      color: #eaf0ff;
+      letter-spacing: -0.02em;
+    }
+    .about-section h2.about-h2-blast {
+      text-align: center;
+      font-size: clamp(1.22rem, 3.2vw, 1.48rem);
+      line-height: 1.2;
+      background: linear-gradient(135deg, #ffffff 0%, #93c5fd 42%, #c4b5fd 78%, #fbbf24 110%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: none;
+    }
+    @supports not (background-clip: text) {
+      .about-section h2.about-h2-blast {
+        color: #eaf0ff;
+        background: none;
+      }
+    }
+    .about-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .about-tile {
+      padding: 18px 18px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(172, 191, 255, 0.28);
+      background: linear-gradient(165deg, rgba(35, 55, 105, 0.55), rgba(17, 26, 47, 0.92));
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      text-align: center;
+    }
+    .about-tile:hover {
+      transform: translateY(-3px);
+      border-color: rgba(167, 139, 250, 0.55);
+      box-shadow: 0 16px 36px rgba(30, 40, 80, 0.35);
+    }
+    .about-tile-ico {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-size: 22px;
+      line-height: 1;
+      border-radius: 14px;
+    }
+    .about-tile-ico.a { background: linear-gradient(145deg, rgba(125, 211, 252, 0.35), rgba(56, 189, 248, 0.15)); }
+    .about-tile-ico.b { background: linear-gradient(145deg, rgba(251, 191, 36, 0.4), rgba(245, 158, 11, 0.15)); }
+    .about-tile-ico.c { background: linear-gradient(145deg, rgba(244, 114, 182, 0.38), rgba(219, 39, 119, 0.12)); }
+    .about-tile-ico.d { background: linear-gradient(145deg, rgba(52, 211, 153, 0.38), rgba(16, 185, 129, 0.12)); }
+    .about-tile-ico.e { background: linear-gradient(145deg, rgba(167, 139, 250, 0.4), rgba(124, 58, 237, 0.15)); }
+    .about-tile strong {
+      display: block;
+      color: var(--text);
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .about-tile span {
+      color: #b8c9ef;
+      font-size: 14px;
+      line-height: 1.42;
+    }
+    .about-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .about-step {
+      text-align: center;
+      padding: 16px 12px;
+      border-radius: 16px;
+      border: 1px dashed rgba(167, 139, 250, 0.45);
+      background: rgba(22, 33, 62, 0.65);
+    }
+    .about-step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      margin-bottom: 8px;
+      font-weight: 800;
+      font-size: 15px;
+      color: #0f172a;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--about-a), var(--about-e));
+      box-shadow: 0 6px 16px rgba(56, 189, 248, 0.25);
+    }
+    .about-step p {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #dbe6ff;
+      line-height: 1.35;
+    }
+    .about-closer {
+      margin-top: 22px;
+      padding: 20px 22px;
+      border-radius: 18px;
+      text-align: center;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(59, 130, 246, 0.12));
+    }
+    .about-closer p {
+      margin: 0 0 14px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #e8f2ff;
+    }
+    .about-cta {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+    }
+    @media (max-width: 720px) {
+      .about-hero {
+        text-align: center;
+      }
+      .about-hero p.lead {
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .about-badges {
+        justify-content: center;
+      }
+      .about-section h2 {
+        text-align: center;
+      }
+      .about-section > p {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .about-steps {
+        justify-items: center;
+      }
+      .about-step {
+        max-width: 280px;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <article class="about-page">
+    <section class="card reveal about-hero">
+      <span class="about-kicker">Привет, мы QuizOrbit 👋</span>
+      <h1>Проверка знаний без лишней суеты</h1>
+      <p class="lead">
+        Узнать, что класс действительно усвоил, можно без бессонной ночи у стопки работ: тест собирается за пару минут, проверка проходит ещё быстрее, а картина по ошибкам сразу видна на экране.
+      </p>
+      <div class="about-badges" aria-hidden="true">
+        <span class="about-badge">⚡ быстрее</span>
+        <span class="about-badge">🎯 понятнее</span>
+        <span class="about-badge">☕ спокойнее вечером</span>
+      </div>
+    </section>
+
+    <section class="card reveal reveal-delay-1 about-section" style="padding:20px 22px;">
+      <h2>Для кого</h2>
+      <p style="margin:0; color:#b8c9ef; font-size:15px; line-height:1.5; max-width:620px;">
+        Для тех, кто ценит своё время, не боится современных технологий и хочет видеть результат сразу — без ожидания «когда разберу стопку» ✏️
+      </p>
+    </section>
+
+    <section class="card reveal reveal-delay-2 about-section" style="padding:20px 22px;">
+      <h2 class="about-h2-blast">Здесь выигрывают время, спокойствие и ясность</h2>
+      <div class="about-grid">
+        <div class="about-tile">
+          <div class="about-tile-ico a" aria-hidden="true">🚀</div>
+          <strong>Старт без долгой возни</strong>
+          <span>Собрали задания — и вперёд. При желании черновик поможет составить ИИ помощник.</span>
+        </div>
+        <div class="about-tile">
+          <div class="about-tile-ico b" aria-hidden="true">🖨️</div>
+          <strong>Всё для печати готово</strong>
+          <span>Задания и бланк — распечатали и раздали.</span>
+        </div>
+        <div class="about-tile">
+          <div class="about-tile-ico c" aria-hidden="true">🤝</div>
+          <strong>Идеи коллег под рукой</strong>
+          <span>Ищите по предмету и классу, копируйте удачные тесты и делайте по-своему.</span>
+        </div>
+        <div class="about-tile">
+          <div class="about-tile-ico d" aria-hidden="true">📊</div>
+          <strong>Видно, где споткнулись</strong>
+          <span>Сразу замечаете «узкие места» — проще планировать следующие темы.</span>
+        </div>
+        <div class="about-tile">
+          <div class="about-tile-ico e" aria-hidden="true">📱</div>
+          <strong>Проверка с телефона</strong>
+          <span>Сняли бланк — результат сразу на экране.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card reveal reveal-delay-3 about-section" style="padding:20px 22px;">
+      <h2 class="about-h2-blast">Пять шагов — от регистрации до статистики</h2>
+      <div class="about-steps">
+        <div class="about-step">
+          <div class="about-step-num">1</div>
+          <p>Зарегистрировались</p>
+        </div>
+        <div class="about-step">
+          <div class="about-step-num">2</div>
+          <p>Подготовили<br />тест</p>
+        </div>
+        <div class="about-step">
+          <div class="about-step-num">3</div>
+          <p>Раздали тесты<br />и бланки</p>
+        </div>
+        <div class="about-step">
+          <div class="about-step-num">4</div>
+          <p>Сняли бланк —<br />результат сразу на экране</p>
+        </div>
+        <div class="about-step">
+          <div class="about-step-num">5</div>
+          <p>Статистика<br />в кабинете</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="about-closer reveal">
+      <p>Готовы попробовать? Регистрация займёт пару минут 🎉</p>
+      <div class="about-cta">
+        <a class="btn" href="{{ url_for('web.register') }}">Поехали!</a>
+        <a class="btn secondary" href="{{ url_for('web.index') }}">На главную</a>
+      </div>
+    </div>
+  </article>
+{% endblock %}

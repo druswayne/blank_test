@@ -6,11 +6,30 @@
     <p class="muted" style="margin-top:10px;">Создайте профиль и начните запускать тестирование в современном кабинете.</p>
     <form method="post" style="margin-top:14px;">
       <label>Логин</label>
-      <input name="login" type="text" required />
+      <p class="muted" style="margin:6px 0 0; font-size:13px;">
+        Только латинские буквы, цифры и нижнее подчёркивание (_).
+      </p>
+      <input
+        name="login"
+        type="text"
+        required
+        maxlength="80"
+        autocomplete="username"
+        pattern="[A-Za-z0-9_]+"
+        title="Латинские буквы, цифры и символ _"
+      />
 
       <label>Пароль</label>
       <div style="position:relative;">
-        <input id="password" name="password" type="password" required style="padding-right:42px;" />
+        <input
+          id="password"
+          name="password"
+          type="password"
+          required
+          pattern="\S+"
+          title="Без пробелов"
+          style="padding-right:42px;"
+        />
         <button
           type="button"
           data-toggle-password="password"
@@ -32,7 +51,15 @@
 
       <label>Повтор пароля</label>
       <div style="position:relative;">
-        <input id="password2" name="password2" type="password" required style="padding-right:42px;" />
+        <input
+          id="password2"
+          name="password2"
+          type="password"
+          required
+          pattern="\S+"
+          title="Без пробелов"
+          style="padding-right:42px;"
+        />
         <button
           type="button"
           data-toggle-password="password2"

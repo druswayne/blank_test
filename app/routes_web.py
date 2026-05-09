@@ -37,6 +37,9 @@ web_bp = Blueprint("web", __name__)
 
 MAX_TEST_QUESTIONS = 10
 
+# Логин при регистрации: латиница, цифры, нижнее подчёркивание (как в типичных username).
+REGISTER_LOGIN_RE = re.compile(r"^[A-Za-z0-9_]+\Z")
+
 SUBJECT_LABELS = {
     "belarusian_language": "Белорусский язык",
     "belarusian_literature": "Белорусская литература",
@@ -156,6 +159,11 @@ def index():
     return render_template("home.html")
 
 
+@web_bp.route("/about", methods=["GET"])
+def about():
+    return render_template("about.html")
+
+
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     # Явно разрешаем индексацию публичной части сайта и даем ссылку на карту.
@@ -179,6 +187,11 @@ def sitemap_xml():
             "loc": url_for("web.index", _external=True),
             "changefreq": "weekly",
             "priority": "1.0",
+        },
+        {
+            "loc": url_for("web.about", _external=True),
+            "changefreq": "monthly",
+            "priority": "0.8",
         },
         {
             "loc": url_for("web.login", _external=True),
@@ -222,12 +235,22 @@ def register():
         return redirect(url_for("web.dashboard"))
 
     if request.method == "POST":
-        login = request.form.get("login", "").strip().lower()
-        password = request.form.get("password", "").strip()
-        password2 = request.form.get("password2", "").strip()
+        login_raw = (request.form.get("login") or "").strip()
+        login = login_raw.lower()
+        password = request.form.get("password") or ""
+        password2 = request.form.get("password2") or ""
 
         if not login or not password:
             flash("Заполните логин и пароль", "error")
+            return redirect(url_for("web.register"))
+        if not REGISTER_LOGIN_RE.match(login_raw):
+            flash(
+                "Логин может содержать только латинские буквы, цифры и символ подчёркивания (_)",
+                "error",
+            )
+            return redirect(url_for("web.register"))
+        if re.search(r"\s", password) or re.search(r"\s", password2):
+            flash("Пароль не должен содержать пробелы и другие пробельные символы", "error")
             return redirect(url_for("web.register"))
         if password != password2:
             flash("Пароли не совпадают", "error")
