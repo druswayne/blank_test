@@ -7,15 +7,6 @@
 {% block twitter_description %}Создание тестов, проверка бланков по фото и аналитика результатов в одном сервисе.{% endblock %}
 {% block head %}
   <style>
-    @media (max-width: 720px) {
-      .hero-logo {
-        width: 90% !important;
-        height: auto !important;
-        float: none !important;
-        display: block;
-        margin: 0 auto 12px !important;
-      }
-    }
     .home-hero-section {
       isolation: isolate;
     }
@@ -99,6 +90,11 @@
       }
     }
     .home-hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+      align-items: center;
       animation: home-feature-in 0.55s ease-out 0.38s backwards;
     }
     .home-hero-link-chip {
@@ -120,6 +116,45 @@
       border-color: rgba(255, 255, 255, 0.38);
       color: #fff !important;
       text-decoration: none !important;
+    }
+    @media (max-width: 720px) {
+      .hero-logo {
+        width: 90% !important;
+        height: auto !important;
+        float: none !important;
+        display: block;
+        margin: 0 auto 12px !important;
+      }
+      .home-hero-features-wrap {
+        width: 100%;
+        max-width: 100%;
+      }
+      .home-hero-features {
+        text-align: center;
+      }
+      .home-hero-features li {
+        display: block;
+      }
+      .home-hero-features li + li {
+        margin-top: 8px;
+      }
+      .home-hero-features li + li::before {
+        display: none;
+        content: none;
+      }
+      .home-hero-cta {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        max-width: min(340px, 100%);
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .home-hero-cta > a {
+        width: 100%;
+        box-sizing: border-box;
+        justify-content: center;
+      }
     }
     @media (prefers-reduced-motion: reduce) {
       .home-hero-blob,
@@ -172,7 +207,7 @@
           <li>ИИ-ассистент</li>
         </ul>
       </div>
-      <div class="home-hero-cta" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; align-items:center;">
+      <div class="home-hero-cta">
         <a class="btn hover-lift" style="background:#fff; color:#1b2d6f; font-weight:700;" href="{{ url_for('web.register') }}">Начать бесплатно</a>
         <a class="home-hero-link-chip" href="{{ url_for('web.login') }}">Уже есть аккаунт</a>
         <a class="home-hero-link-chip" href="{{ url_for('web.about') }}">О сервисе подробнее</a>
