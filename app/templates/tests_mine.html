@@ -15,9 +15,16 @@
     .tests-mine-page .actions-cell { min-width: 300px; }
     .tests-mine-page .rating-cell { min-width: 260px; }
     .tests-mine-page .action-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .tests-mine-page .action-buttons form {
+      margin: 0;
+      width: 220px;
+      max-width: 100%;
+      align-self: flex-start;
+    }
     .tests-mine-page .action-buttons .btn,
     .tests-mine-page .action-buttons form .btn {
       width: 220px;
+      box-sizing: border-box;
       text-align: center;
       font-size: 13px;
       font-weight: 600;
@@ -138,6 +145,10 @@
       .tests-mine-page .table-wrap { margin-top: 12px; }
       .tests-mine-page .data { min-width: 880px; }
       .tests-mine-page .action-buttons { flex-direction: column; align-items: stretch; }
+      .tests-mine-page .action-buttons form {
+        width: 100%;
+        align-self: stretch;
+      }
       .tests-mine-page .action-buttons .btn,
       .tests-mine-page .action-buttons form .btn {
         width: 100%;
@@ -238,7 +249,7 @@
                   <button
                     class="btn secondary"
                     type="submit"
-                    style="width:100%; background:#7f1d1d; border-color:#b91c1c;"
+                    style="background:#7f1d1d; border-color:#b91c1c;"
                     onclick="return confirm('Удалить этот тест? Это действие нельзя отменить.')"
                   >
                     Удалить
