@@ -1,6 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Статистика теста{% endblock %}
+{% block head %}
+  <style>
+    .tests-stats-page .table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      outline: none;
+    }
+    @media (max-width: 768px) {
+      .tests-stats-page .table-wrap {
+        margin-top: 12px;
+      }
+      .tests-stats-page .data {
+        min-width: 640px;
+      }
+    }
+  </style>
+{% endblock %}
 {% block content %}
+  <div class="tests-stats-page">
   <h2>Статистика: {{ blank.title if blank.title else ('Тест ' ~ blank.uuid[:8]) }}</h2>
   <div style="margin-top:10px;">
     <a href="{{ url_for('web.tests_mine') }}">← К списку «Мои тесты»</a>
@@ -22,7 +44,8 @@
   </div>
 
   {% if rows %}
-    <table id="stats-table" class="data" style="margin-top:16px;">
+    <div class="table-wrap">
+    <table id="stats-table" class="data">
       <thead>
         <tr>
           <th>
@@ -62,6 +85,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     <script>
       (function () {
         var tableBody = document.getElementById("stats-table-body");
@@ -136,4 +160,5 @@
   {% else %}
     <div class="box" style="margin-top:16px; color:#64748b;">Пока нет данных сканирования для этого теста.</div>
   {% endif %}
+  </div>
 {% endblock %}

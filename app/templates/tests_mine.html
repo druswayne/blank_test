@@ -231,8 +231,8 @@
               <div class="action-buttons">
                 <a class="btn" href="{{ url_for('web.tests_edit', blank_uuid=b.uuid) }}">Редактировать</a>
                 <a class="btn btn-download" href="{{ url_for('web.blank_pdf_questions', blank_uuid=b.uuid) }}"><span>Тест</span><span class="download-icon">↓</span></a>
-                <a class="btn secondary" href="{{ url_for('web.tests_stats', blank_uuid=b.uuid) }}">Статистика</a>
                 <a class="btn btn-download nowrap" href="{{ url_for('web.blank_pdf_answers', blank_uuid=b.uuid) }}"><span>Бланк ответов</span><span class="download-icon">↓</span></a>
+                <a class="btn secondary" href="{{ url_for('web.tests_stats', blank_uuid=b.uuid) }}">Статистика</a>
                 <form method="post" action="{{ url_for('web.tests_delete', blank_uuid=b.uuid) }}" style="margin:0;">
                   <input type="hidden" name="next" value="{{ return_to }}" />
                   <button
