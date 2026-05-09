@@ -2,21 +2,30 @@
 {% block title %}Мои тесты — список{% endblock %}
 {% block head %}
   <style>
-    .actions-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+    .tests-mine-page .results-meta { margin-top: 12px; color: #475569; font-size: 14px; }
+    .tests-mine-page .table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      outline: none;
     }
-    .actions-grid .btn {
-      width: 100%;
-      padding: 6px 10px;
+    .tests-mine-page .actions-cell { min-width: 300px; }
+    .tests-mine-page .rating-cell { min-width: 260px; }
+    .tests-mine-page .action-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .tests-mine-page .action-buttons .btn,
+    .tests-mine-page .action-buttons form .btn {
+      width: 220px;
+      text-align: center;
       font-size: 13px;
       font-weight: 600;
       line-height: 1.25;
       font-family: inherit;
-      text-align: center;
+      padding: 6px 10px;
     }
-    .actions-grid .btn-download {
+    .tests-mine-page .btn-download {
       position: relative;
       display: inline-flex;
       align-items: center;
@@ -30,12 +39,12 @@
       padding-right: 34px;
       overflow: visible;
     }
-    .actions-grid .btn-download:hover {
+    .tests-mine-page .btn-download:hover {
       background: #15803d;
       border-color: #15803d;
       color: #fff;
     }
-    .actions-grid .btn-download .download-icon {
+    .tests-mine-page .btn-download .download-icon {
       position: absolute;
       right: -10px;
       top: 50%;
@@ -54,14 +63,14 @@
       font-weight: 900;
       border: 2px solid #16a34a;
     }
-    .actions-grid .btn-download.nowrap {
+    .tests-mine-page .btn-download.nowrap {
       white-space: nowrap;
     }
-    .actions-grid .btn-download > span:first-child {
+    .tests-mine-page .btn-download > span:first-child {
       width: 100%;
       text-align: center;
     }
-    .tests-page-nav {
+    .tests-mine-page .tests-page-nav {
       margin-top: 12px;
       display: flex;
       flex-wrap: wrap;
@@ -69,11 +78,11 @@
       justify-content: space-between;
       gap: 10px 14px;
     }
-    .tests-page-nav__back {
+    .tests-mine-page .tests-page-nav__back {
       flex: 0 1 auto;
       min-width: 0;
     }
-    .tests-page-nav__actions {
+    .tests-mine-page .tests-page-nav__actions {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -81,38 +90,65 @@
       gap: 8px;
       flex: 1 1 220px;
     }
-    .tests-page-nav__actions .btn {
+    .tests-mine-page .tests-page-nav__actions .btn {
       min-height: 44px;
       padding: 10px 16px;
       font-size: 14px;
       text-align: center;
     }
+    .tests-mine-page .rating-info { font-size: 13px; color: #475569; margin-bottom: 6px; }
+    .tests-mine-page .my-rating { color: #16a34a; font-size: 13px; }
+    .tests-mine-page .rating-form { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tests-mine-page .pager { margin-top: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .tests-mine-page .pager-text { color: #475569; }
+    .tests-mine-page .mine-results-section {
+      scroll-margin-top: 76px;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      outline: none;
+    }
+
     @media (max-width: 640px) {
-      .tests-page-nav {
+      .tests-mine-page .tests-page-nav {
         flex-direction: column;
         align-items: stretch;
       }
-      .tests-page-nav__actions {
+      .tests-mine-page .tests-page-nav__actions {
         flex: 1 1 auto;
         justify-content: stretch;
       }
-      .tests-page-nav__actions .btn {
+      .tests-mine-page .tests-page-nav__actions .btn {
         flex: 1 1 calc(50% - 4px);
         min-width: 0;
       }
     }
     @media (max-width: 380px) {
-      .tests-page-nav__actions {
+      .tests-mine-page .tests-page-nav__actions {
         flex-direction: column;
       }
-      .tests-page-nav__actions .btn {
+      .tests-mine-page .tests-page-nav__actions .btn {
         flex: 1 1 auto;
         width: 100%;
       }
     }
+    @media (max-width: 768px) {
+      .tests-mine-page h2 { margin-bottom: 4px; }
+      .tests-mine-page .box { padding: 12px; }
+      .tests-mine-page .table-wrap { margin-top: 12px; }
+      .tests-mine-page .data { min-width: 880px; }
+      .tests-mine-page .action-buttons { flex-direction: column; align-items: stretch; }
+      .tests-mine-page .action-buttons .btn,
+      .tests-mine-page .action-buttons form .btn {
+        width: 100%;
+      }
+      .tests-mine-page .rating-form button { flex: 1 1 calc(20% - 4px); min-width: 44px; }
+      .tests-mine-page .pager { gap: 6px; }
+    }
   </style>
 {% endblock %}
 {% block content %}
+  <div class="tests-mine-page">
   <h2>Мои тесты</h2>
   <div class="tests-page-nav">
     <a class="tests-page-nav__back" href="{{ url_for('web.tests_hub') }}">← К разделу тестов</a>
@@ -165,11 +201,13 @@
     </form>
   </div>
 
+  <div id="mine-results" class="mine-results-section">
   {% if blanks %}
-    <div style="margin-top:12px; color:#475569; font-size:14px;">
+    <div class="results-meta">
       Показано {{ blanks|length }} из {{ total }}.
     </div>
-    <table class="data" style="margin-top:16px;">
+    <div class="table-wrap">
+    <table class="data">
       <thead>
         <tr>
           <th>Название</th>
@@ -177,8 +215,8 @@
           <th>Доступ</th>
           <th>Класс</th>
           <th>Предмет</th>
-          <th style="min-width:260px;">Действия</th>
-          <th style="min-width:260px;">Оценка</th>
+          <th class="actions-cell">Действия</th>
+          <th class="rating-cell">Оценка</th>
         </tr>
       </thead>
       <tbody>
@@ -190,7 +228,7 @@
             <td>{% if b.grade %}{{ b.grade }}{% else %}—{% endif %}</td>
             <td>{% if b.subject %}{{ subject_labels.get(b.subject, b.subject) }}{% else %}—{% endif %}</td>
             <td>
-              <div class="actions-grid">
+              <div class="action-buttons">
                 <a class="btn" href="{{ url_for('web.tests_edit', blank_uuid=b.uuid) }}">Редактировать</a>
                 <a class="btn btn-download" href="{{ url_for('web.blank_pdf_questions', blank_uuid=b.uuid) }}"><span>Тест</span><span class="download-icon">↓</span></a>
                 <a class="btn secondary" href="{{ url_for('web.tests_stats', blank_uuid=b.uuid) }}">Статистика</a>
@@ -211,7 +249,7 @@
             <td>
               {% set rs = rating_stats.get(b.id) %}
               {% set my = my_ratings.get(b.id) %}
-              <div style="font-size:13px; color:#475569; margin-bottom:6px;">
+              <div class="rating-info">
                 {% if rs %}
                   ★ {{ '%.1f'|format(rs[0]) }} ({{ rs[1] }})
                 {% else %}
@@ -219,9 +257,9 @@
                 {% endif %}
               </div>
               {% if my %}
-                <div style="color:#16a34a; font-size:13px;">Ваш голос: {{ my }}/5</div>
+                <div class="my-rating">Ваш голос: {{ my }}/5</div>
               {% else %}
-                <form method="post" action="{{ url_for('web.rate_test', blank_uuid=b.uuid) }}" style="display:flex; gap:4px; flex-wrap:wrap;">
+                <form method="post" action="{{ url_for('web.rate_test', blank_uuid=b.uuid) }}" class="rating-form">
                   <input type="hidden" name="next" value="{{ return_to }}" />
                   {% for s in range(1, 6) %}
                     <button type="submit" name="score" value="{{ s }}" class="btn secondary" style="padding:3px 7px; font-size:12px;">{{ s }}★</button>
@@ -233,13 +271,14 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     {% if pages > 1 %}
-      <div style="margin-top:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <div class="pager">
         {% if page > 1 %}
           <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_mine', page=page-1, **query_args) }}">← Назад</a>
         {% endif %}
-        <span style="color:#475569;">Страница {{ page }} из {{ pages }}</span>
+        <span class="pager-text">Страница {{ page }} из {{ pages }}</span>
         {% if page < pages %}
           <a class="btn secondary" style="padding:6px 10px; font-size:13px;" href="{{ url_for('web.tests_mine', page=page+1, **query_args) }}">Вперёд →</a>
         {% endif %}
@@ -254,4 +293,6 @@
       {% endif %}
     </div>
   {% endif %}
+  </div>
+  </div>
 {% endblock %}
