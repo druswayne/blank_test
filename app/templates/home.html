@@ -44,42 +44,6 @@
       position: relative;
       z-index: 1;
     }
-    .home-hero-features-wrap {
-      margin-top: 18px;
-      padding: 14px 18px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.07);
-      border: none;
-      box-shadow: none;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      animation: home-feature-in 0.45s ease-out 0.06s backwards;
-      width: fit-content;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-    .home-hero-features {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      font-size: 15px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.88);
-      line-height: 1.55;
-      text-align: left;
-    }
-    .home-hero-features li {
-      display: inline;
-      padding: 0;
-    }
-    .home-hero-features li + li::before {
-      content: "·";
-      margin: 0 10px;
-      opacity: 0.42;
-      font-weight: 400;
-      pointer-events: none;
-      user-select: none;
-    }
     @keyframes home-feature-in {
       from {
         opacity: 0;
@@ -126,20 +90,6 @@
         display: block;
         margin: 0 auto 12px !important;
       }
-      .home-hero-features-wrap {
-        width: 100%;
-        max-width: 100%;
-      }
-      .home-hero-features li {
-        display: block;
-      }
-      .home-hero-features li + li {
-        margin-top: 8px;
-      }
-      .home-hero-features li + li::before {
-        display: none;
-        content: none;
-      }
       .home-hero-cta {
         flex-direction: column;
         align-items: stretch;
@@ -156,13 +106,8 @@
     }
     @media (prefers-reduced-motion: reduce) {
       .home-hero-blob,
-      .home-hero-features-wrap,
       .home-hero-cta {
         animation: none !important;
-      }
-      .home-hero-features-wrap {
-        opacity: 1;
-        transform: none;
       }
     }
   </style>
@@ -197,14 +142,6 @@
         Создавайте тесты, проверяйте бланки по фото и сразу получайте аналитику по результатам.
       </p>
       <div style="clear:both;"></div>
-      <div class="home-hero-features-wrap">
-        <ul class="home-hero-features" aria-label="Возможности сервиса">
-          <li>Запуск теста за минуты</li>
-          <li>Проверка работ по фото</li>
-          <li>Моментальная статистика</li>
-          <li>ИИ-ассистент</li>
-        </ul>
-      </div>
       <div class="home-hero-cta">
         <a class="btn hover-lift" style="background:#fff; color:#1b2d6f; font-weight:700;" href="{{ url_for('web.register') }}">Начать бесплатно</a>
         <a class="home-hero-link-chip" href="{{ url_for('web.login') }}">Уже есть аккаунт</a>
