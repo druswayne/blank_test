@@ -16,6 +16,89 @@
         margin: 0 auto 12px !important;
       }
     }
+    .home-hero-section {
+      isolation: isolate;
+    }
+    .home-hero-blob {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      animation: home-blob-drift 22s ease-in-out infinite;
+    }
+    .home-hero-blob--1 {
+      width: 360px;
+      height: 360px;
+      top: -160px;
+      right: -80px;
+      background: rgba(255, 255, 255, 0.13);
+      filter: blur(0.5px);
+    }
+    .home-hero-blob--2 {
+      width: 180px;
+      height: 180px;
+      bottom: -60px;
+      right: 180px;
+      background: rgba(255, 255, 255, 0.1);
+      animation-duration: 28s;
+      animation-delay: -8s;
+    }
+    @keyframes home-blob-drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      40% { transform: translate(-12px, 14px) scale(1.04); }
+      70% { transform: translate(10px, -8px) scale(0.97); }
+    }
+    .home-hero-inner {
+      max-width: min(1080px, 100%);
+      position: relative;
+      z-index: 1;
+    }
+    .home-hero-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    @media (min-width: 960px) {
+      .home-hero-features {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+    @keyframes home-feature-in {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .home-hero-features > div {
+      white-space: nowrap;
+      font-size: 15px;
+      padding: 12px 14px;
+      text-align: center;
+      animation: home-feature-in 0.5s ease-out backwards;
+    }
+    .home-hero-features > div:nth-child(1) { animation-delay: 0.08s; }
+    .home-hero-features > div:nth-child(2) { animation-delay: 0.16s; }
+    .home-hero-features > div:nth-child(3) { animation-delay: 0.24s; }
+    .home-hero-features > div:nth-child(4) { animation-delay: 0.32s; }
+    .home-hero-cta {
+      animation: home-feature-in 0.55s ease-out 0.38s backwards;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .home-hero-blob,
+      .home-hero-features > div,
+      .home-hero-cta {
+        animation: none !important;
+      }
+      .home-hero-features > div {
+        opacity: 1;
+        transform: none;
+      }
+    }
   </style>
 {% endblock %}
 {% block structured_data %}
@@ -33,12 +116,12 @@
   </script>
 {% endblock %}
 {% block content %}
-  <section class="card reveal" style="padding:30px; margin-top:6px; background:linear-gradient(135deg,#23489a 0%,#2f3b8a 44%,#5336a4 100%); color:#fff; position:relative; overflow:hidden;">
-    <div style="position:absolute; width:360px; height:360px; border-radius:50%; top:-160px; right:-80px; background:rgba(255,255,255,.13); filter:blur(0.5px);"></div>
-    <div style="position:absolute; width:180px; height:180px; border-radius:50%; bottom:-60px; right:180px; background:rgba(255,255,255,.1);"></div>
-    <div style="max-width:780px; position:relative;">
+  <section class="card reveal home-hero-section" style="padding:30px; margin-top:6px; background:linear-gradient(135deg,#23489a 0%,#2f3b8a 44%,#5336a4 100%); color:#fff; position:relative; overflow:hidden;">
+    <div class="home-hero-blob home-hero-blob--1" aria-hidden="true"></div>
+    <div class="home-hero-blob home-hero-blob--2" aria-hidden="true"></div>
+    <div class="home-hero-inner">
       <img
-        class="hero-logo"
+        class="hero-logo float-soft"
         src="{{ url_for('static', filename='logo.png') }}"
         alt="Логотип QuizOrbit"
         style="width:230px; height:230px; object-fit:cover; border-radius:28px; box-shadow:0 16px 40px rgba(8,18,48,.38); float:left; margin:0 18px 10px 0;"
@@ -48,12 +131,13 @@
         Создавайте тесты, проверяйте бланки по фото и сразу получайте аналитику по результатам.
       </p>
       <div style="clear:both;"></div>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:16px;">
-        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px; padding:10px 12px;">Запуск теста за минуты</div>
-        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px; padding:10px 12px;">Проверка работ по фото</div>
-        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px; padding:10px 12px;">Моментальная статистика</div>
+      <div class="home-hero-features">
+        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px;">Запуск теста за минуты</div>
+        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px;">Проверка работ по фото</div>
+        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px;">Моментальная статистика</div>
+        <div style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.24); border-radius:12px;">ИИ-ассистент</div>
       </div>
-      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; align-items:center;">
+      <div class="home-hero-cta" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; align-items:center;">
         <a class="btn hover-lift" style="background:#fff; color:#1b2d6f; font-weight:700;" href="{{ url_for('web.register') }}">Начать бесплатно</a>
         <a href="{{ url_for('web.login') }}" style="color:#e4ebff; font-weight:600;">Уже есть аккаунт</a>
       </div>
