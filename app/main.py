@@ -114,6 +114,15 @@ def create_app() -> Flask:
                         conn.execute(text("ALTER TABLE test_blanks ADD COLUMN grade INTEGER"))
                     if "subject" not in cols:
                         conn.execute(text("ALTER TABLE test_blanks ADD COLUMN subject VARCHAR(50)"))
+            if insp.has_table("users"):
+                ucols = {c["name"] for c in insp.get_columns("users")}
+                with db.engine.begin() as conn:
+                    if "ai_quota_date" not in ucols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN ai_quota_date DATE"))
+                    if "ai_quota_used" not in ucols:
+                        conn.execute(
+                            text("ALTER TABLE users ADD COLUMN ai_quota_used INTEGER NOT NULL DEFAULT 0")
+                        )
         except Exception as exc:
             db.session.rollback()
             logger.warning("Database init skipped due to connection error: %s", exc)

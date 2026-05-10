@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -36,6 +37,39 @@ from .services.test_body_parser import (
 web_bp = Blueprint("web", __name__)
 
 MAX_TEST_QUESTIONS = 10
+
+# Генерация теста через ИИ: не более N успешных запросов за календарные сутки (UTC).
+AI_GENERATE_DAILY_LIMIT = 10
+
+
+def _utc_today():
+    return datetime.utcnow().date()
+
+
+def _sync_ai_quota_for_today(user: User) -> bool:
+    """Сбрасывает счётчик при наступлении новых суток (UTC). Возвращает True, если объект изменился."""
+    today = _utc_today()
+    if user.ai_quota_date is None or user.ai_quota_date != today:
+        user.ai_quota_date = today
+        user.ai_quota_used = 0
+        return True
+    return False
+
+
+def _ai_quota_remaining_and_limit(user: User) -> tuple[int, int]:
+    """Оставшиеся попытки и лимит после синхронизации даты (UTC)."""
+    _sync_ai_quota_for_today(user)
+    limit = AI_GENERATE_DAILY_LIMIT
+    used = int(user.ai_quota_used or 0)
+    return max(0, limit - used), limit
+
+
+def _ai_quota_template_vars() -> dict:
+    if _sync_ai_quota_for_today(current_user):
+        db.session.commit()
+    rem, lim = _ai_quota_remaining_and_limit(current_user)
+    return {"ai_quota_remaining": rem, "ai_quota_limit": lim}
+
 
 # Логин при регистрации: латиница, цифры, нижнее подчёркивание (как в типичных username).
 REGISTER_LOGIN_RE = re.compile(r"^[A-Za-z0-9_]+\Z")
@@ -97,22 +131,42 @@ def _meta_from_form() -> tuple[str | None, bool, int | None, str | None]:
 
 
 def _apply_questions(blank: TestBlank, parsed: list[dict]) -> None:
-    TestQuestion.query.filter_by(blank_id=blank.id).delete(synchronize_session=False)
-    blank.question_count = len(parsed)
+    """Вопросы с тем же номером обновляются на месте (id сохраняются для статистики по question_id)."""
+    existing = (
+        TestQuestion.query.filter_by(blank_id=blank.id).order_by(TestQuestion.question_number.asc()).all()
+    )
+    by_num = {q.question_number: q for q in existing}
+    new_count = len(parsed)
+
     for i, item in enumerate(parsed, start=1):
         o = item["options"]
-        db.session.add(
-            TestQuestion(
-                blank_id=blank.id,
-                question_number=i,
-                question_text=item["text"],
-                option_a=o[0],
-                option_b=o[1],
-                option_c=o[2],
-                option_d=o[3],
-                correct_index=int(item["correct"]),
+        q = by_num.get(i)
+        if q:
+            q.question_text = item["text"]
+            q.option_a = o[0]
+            q.option_b = o[1]
+            q.option_c = o[2]
+            q.option_d = o[3]
+            q.correct_index = int(item["correct"])
+        else:
+            db.session.add(
+                TestQuestion(
+                    blank_id=blank.id,
+                    question_number=i,
+                    question_text=item["text"],
+                    option_a=o[0],
+                    option_b=o[1],
+                    option_c=o[2],
+                    option_d=o[3],
+                    correct_index=int(item["correct"]),
+                )
             )
-        )
+
+    for q in existing:
+        if q.question_number > new_count:
+            db.session.delete(q)
+
+    blank.question_count = new_count
 
 
 def _regenerate_pdfs(blank: TestBlank) -> None:
@@ -632,6 +686,7 @@ def tests_new():
                 form_is_public=form_is_public,
                 form_grade=form_grade,
                 form_subject=form_subject,
+                **_ai_quota_template_vars(),
             )
         try:
             if looks_like_quill_html(raw_body):
@@ -650,6 +705,7 @@ def tests_new():
                 form_is_public=form_is_public,
                 form_grade=form_grade,
                 form_subject=form_subject,
+                **_ai_quota_template_vars(),
             )
 
         blank = TestBlank(
@@ -682,6 +738,7 @@ def tests_new():
         form_is_public=False,
         form_grade=None,
         form_subject="",
+        **_ai_quota_template_vars(),
     )
 
 
@@ -712,6 +769,23 @@ def tests_ai_generate():
             503,
         )
 
+    if _sync_ai_quota_for_today(current_user):
+        db.session.commit()
+    remaining_before, limit = _ai_quota_remaining_and_limit(current_user)
+    if remaining_before <= 0:
+        return (
+            jsonify(
+                ok=False,
+                error=(
+                    "Дневной лимит генераций через ИИ исчерпан (10 попыток на пользователя). "
+                    "Лимит полностью восстановится в начале следующих суток (по времени сервера, UTC)."
+                ),
+                remaining=0,
+                limit=limit,
+            ),
+            429,
+        )
+
     proxy_source = current_app.config.get("TIMEWEB_AI_PROXY_SOURCE")
     if proxy_source is None:
         proxy_source = ""
@@ -731,7 +805,10 @@ def tests_ai_generate():
         return jsonify(ok=False, error="Пустой ответ агента"), 502
 
     text = strip_markdown_fences(content)
-    return jsonify(ok=True, text=text)
+    current_user.ai_quota_used = int(current_user.ai_quota_used or 0) + 1
+    db.session.commit()
+    rem_after, lim = _ai_quota_remaining_and_limit(current_user)
+    return jsonify(ok=True, text=text, remaining=rem_after, limit=lim)
 
 
 @web_bp.route("/tests/<blank_uuid>/edit", methods=["GET", "POST"])

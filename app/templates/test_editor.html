@@ -424,6 +424,9 @@
       word-break: break-word;
     }
     .btn-ai-generate {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       padding: 12px 22px;
       font-size: 15px;
       font-weight: 800;
@@ -447,6 +450,57 @@
       outline: 2px solid #93c5fd;
       outline-offset: 3px;
     }
+    .btn-ai-generate.is-exhausted {
+      opacity: 0.88;
+      filter: saturate(0.92);
+    }
+    .btn-ai-inner-row {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+    .btn-ai-main {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+    }
+    .btn-ai-title-short {
+      display: none;
+    }
+    .btn-ai-quota-line {
+      display: inline-block;
+      flex-shrink: 0;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #dbe6ff;
+      text-shadow: none;
+      border-radius: 999px;
+      border: 1px solid rgba(172, 191, 255, 0.38);
+      background: linear-gradient(
+        135deg,
+        rgba(91, 139, 255, 0.32) 0%,
+        rgba(124, 92, 255, 0.18) 55%,
+        rgba(45, 65, 112, 0.55) 100%
+      );
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 2px 10px rgba(91, 139, 255, 0.22);
+    }
+    .btn-ai-generate.is-exhausted .btn-ai-quota-line {
+      color: #b8c9f6;
+      border-color: rgba(172, 191, 255, 0.22);
+      background: linear-gradient(
+        135deg,
+        rgba(45, 65, 112, 0.42) 0%,
+        rgba(26, 38, 66, 0.55) 100%
+      );
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
     .btn-ai-generate .btn-ai-badge {
       display: inline-block;
       margin-right: 8px;
@@ -466,15 +520,90 @@
       flex-wrap: wrap;
       gap: 12px;
     }
+    #ai-exhausted-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.62);
+      z-index: 55;
+      backdrop-filter: blur(3px);
+    }
+    #ai-exhausted-modal {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 65;
+      width: min(440px, 92vw);
+      background: linear-gradient(180deg, rgba(26, 38, 66, 0.98), rgba(15, 24, 44, 0.99));
+      border-radius: 16px;
+      border: 1px solid rgba(172, 191, 255, 0.3);
+      box-shadow: 0 28px 70px rgba(2, 8, 30, 0.65);
+      padding: 18px 20px 16px;
+      color: #dce7ff;
+    }
+    #ai-exhausted-modal p {
+      margin: 12px 0 0 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #c8d8f8;
+    }
+    #ai-exhausted-modal .ai-exhausted-actions {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
     @media (max-width: 640px) {
       .editor-heading-row {
         flex-direction: column;
         align-items: stretch;
+        min-width: 0;
       }
       .editor-heading-row .btn-ai-generate {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
         box-sizing: border-box;
         justify-content: center;
+        padding: 9px 10px;
+        font-size: 12px;
+      }
+      .btn-ai-inner-row {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+      .btn-ai-title-full {
+        display: none;
+      }
+      .btn-ai-title-short {
+        display: inline;
+      }
+      .btn-ai-main {
+        min-width: 0;
+        flex: 1 1 auto;
+        justify-content: flex-start;
+      }
+      .btn-ai-generate .btn-ai-badge {
+        margin-right: 6px;
+        padding: 2px 6px;
+        font-size: 10px;
+      }
+      .btn-ai-quota-line {
+        flex-shrink: 0;
+        padding: 3px 8px;
+        font-size: 10px;
+      }
+      .ai-quota-prefix {
+        display: none;
       }
     }
     #ai-modal-main {
@@ -609,7 +738,14 @@
         <label for="editor" style="margin:0; font-weight:700; font-size:1.02rem;">Текст теста</label>
         {% if mode == 'create' %}
           <button type="button" class="btn btn-ai-generate" id="btn-ai-generate">
-            <span class="btn-ai-badge">ИИ</span>Сгенерировать через ИИ
+            <span class="btn-ai-inner-row">
+              <span class="btn-ai-main">
+                <span class="btn-ai-badge">ИИ</span><span class="btn-ai-title-full">Сгенерировать через ИИ</span><span class="btn-ai-title-short">Сгенерировать</span>
+              </span>
+              <span class="btn-ai-quota-line">
+                <span class="ai-quota-prefix">Осталось </span><span id="ai-quota-count-label">{{ ai_quota_remaining }}/{{ ai_quota_limit }}</span>
+              </span>
+            </span>
           </button>
         {% endif %}
       </div>
@@ -692,6 +828,14 @@
     </div>
     </div>
   </div>
+  <div id="ai-exhausted-backdrop"></div>
+  <div id="ai-exhausted-modal" role="dialog" aria-modal="true" aria-labelledby="ai-exhausted-title">
+    <strong id="ai-exhausted-title" style="font-size:16px; color:#f0f4ff;">Попытки закончились</strong>
+    <p id="ai-exhausted-text"></p>
+    <div class="ai-exhausted-actions">
+      <button type="button" class="btn" id="btn-ai-exhausted-close">Понятно</button>
+    </div>
+  </div>
   {% endif %}
 
   <div id="preview-backdrop"></div>
@@ -706,6 +850,7 @@
   <script type="application/json" id="initial-plain">{{ body_text | tojson }}</script>
   {% if mode == 'create' %}
   <script type="application/json" id="ai-generate-url">{{ url_for('web.tests_ai_generate') | tojson }}</script>
+  <script type="application/json" id="ai-quota-initial">{{ {'remaining': ai_quota_remaining, 'limit': ai_quota_limit} | tojson }}</script>
   {% endif %}
   <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
   <script src="https://unpkg.com/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
@@ -998,6 +1143,83 @@
       var aiOverlay = document.getElementById('ai-generation-overlay');
       var aiGenAbort = null;
 
+      var aiQuotaRemaining = 10;
+      var aiQuotaLimit = 10;
+      var quotaInitialEl = document.getElementById('ai-quota-initial');
+      if (quotaInitialEl) {
+        try {
+          var q0 = JSON.parse(quotaInitialEl.textContent || '{}');
+          if (typeof q0.remaining === 'number') aiQuotaRemaining = q0.remaining;
+          if (typeof q0.limit === 'number') aiQuotaLimit = q0.limit;
+        } catch (e) {}
+      }
+
+      var exhaustedBackdrop = document.getElementById('ai-exhausted-backdrop');
+      var exhaustedModal = document.getElementById('ai-exhausted-modal');
+      var exhaustedText = document.getElementById('ai-exhausted-text');
+      var btnExhaustedClose = document.getElementById('btn-ai-exhausted-close');
+
+      function ruHoursWord(n) {
+        var mod100 = n % 100;
+        var mod10 = n % 10;
+        if (mod100 >= 11 && mod100 <= 14) return 'часов';
+        if (mod10 === 1) return 'час';
+        if (mod10 >= 2 && mod10 <= 4) return 'часа';
+        return 'часов';
+      }
+
+      function ruMinutesWord(n) {
+        var mod100 = n % 100;
+        var mod10 = n % 10;
+        if (mod100 >= 11 && mod100 <= 14) return 'минут';
+        if (mod10 === 1) return 'минуту';
+        if (mod10 >= 2 && mod10 <= 4) return 'минуты';
+        return 'минут';
+      }
+
+      /** Время до следующей полуночи UTC — как на сервере при сбросе лимита. */
+      function formatReplenishEtaRu() {
+        var now = new Date();
+        var nextUtcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0);
+        var ms = nextUtcMidnight - now.getTime();
+        if (ms <= 0) return 'очень скоро';
+        var totalMin = Math.ceil(ms / 60000);
+        var h = Math.floor(totalMin / 60);
+        var m = totalMin % 60;
+        if (h === 0) return 'через ' + m + ' ' + ruMinutesWord(m);
+        if (m === 0) return 'через ' + h + ' ' + ruHoursWord(h);
+        return 'через ' + h + ' ' + ruHoursWord(h) + ' ' + m + ' ' + ruMinutesWord(m);
+      }
+
+      function applyAiQuotaUi() {
+        var label = document.getElementById('ai-quota-count-label');
+        if (label) label.textContent = aiQuotaRemaining + '/' + aiQuotaLimit;
+        if (btnAi) btnAi.classList.toggle('is-exhausted', aiQuotaRemaining <= 0);
+      }
+
+      function mergeQuotaFromBody(body) {
+        if (!body || typeof body !== 'object') return;
+        if (typeof body.remaining === 'number') aiQuotaRemaining = body.remaining;
+        if (typeof body.limit === 'number') aiQuotaLimit = body.limit;
+        applyAiQuotaUi();
+      }
+
+      function openExhaustedModal() {
+        if (exhaustedText) {
+          exhaustedText.textContent =
+            'Дневной лимит генераций через ИИ исчерпан. Попытки восполнятся ' + formatReplenishEtaRu() + '.';
+        }
+        if (exhaustedBackdrop) exhaustedBackdrop.style.display = 'block';
+        if (exhaustedModal) exhaustedModal.style.display = 'block';
+      }
+
+      function closeExhaustedModal() {
+        if (exhaustedBackdrop) exhaustedBackdrop.style.display = 'none';
+        if (exhaustedModal) exhaustedModal.style.display = 'none';
+      }
+
+      applyAiQuotaUi();
+
       function setAiGenerating(on) {
         if (!aiModal || !aiOverlay) return;
         if (on) {
@@ -1013,13 +1235,17 @@
           aiModal.setAttribute('aria-busy', 'false');
           aiOverlay.classList.remove('is-visible');
           aiOverlay.setAttribute('aria-hidden', 'true');
-          if (btnAiSubmit) btnAiSubmit.disabled = false;
+          if (btnAiSubmit) btnAiSubmit.disabled = aiQuotaRemaining <= 0;
           if (btnAiCancel) btnAiCancel.disabled = false;
           if (aiPrompt) aiPrompt.disabled = false;
         }
       }
 
       function openAiModal() {
+        if (aiQuotaRemaining <= 0) {
+          openExhaustedModal();
+          return;
+        }
         if (aiGenAbort) {
           try { aiGenAbort.abort(); } catch (e) {}
           aiGenAbort = null;
@@ -1042,6 +1268,10 @@
       }
 
       if (btnAi) btnAi.addEventListener('click', openAiModal);
+      if (btnExhaustedClose) btnExhaustedClose.addEventListener('click', closeExhaustedModal);
+      if (exhaustedBackdrop) {
+        exhaustedBackdrop.addEventListener('click', closeExhaustedModal);
+      }
       if (btnAiClose) btnAiClose.addEventListener('click', closeAiModal);
       if (btnAiCancel) btnAiCancel.addEventListener('click', closeAiModal);
       if (aiBackdrop) {
@@ -1087,6 +1317,7 @@
               });
             })
             .then(function (res) {
+              if (res.body) mergeQuotaFromBody(res.body);
               if (!res.body || !res.body.ok) {
                 var err =
                   (res.body && res.body.error) ||

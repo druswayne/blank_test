@@ -17,6 +17,10 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.LargeBinary(60), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    # Учёт лимита генерации тестов через ИИ (сутки по UTC, см. routes_web).
+    ai_quota_date = db.Column(db.Date, nullable=True)
+    ai_quota_used = db.Column(db.Integer, nullable=False, default=0)
+
     blanks = db.relationship("TestBlank", back_populates="owner", cascade="all, delete-orphan")
     rated_blanks = db.relationship("TestBlankRating", back_populates="user", cascade="all, delete-orphan")
 
